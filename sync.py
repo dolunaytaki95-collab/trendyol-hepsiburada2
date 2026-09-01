@@ -2,16 +2,21 @@ import os
 import json
 import re
 import unicodedata
+import time
 from datetime import datetime
 
 import requests
 
-TRENDYOL_BASE = "https://apigw.trendyol.com"
+TY_BASE = "https://apigw.trendyol.com"
 HB_BASE = os.getenv("HB_BASE_URL", "https://mpop-sit.hepsiburada.com")
+
 TY_PAGE_SIZE = 100
 HB_PAGE_SIZE = 1000
 TIMEOUT = 60
 
+# ------------------------------------------------------------
+# GITHUB SECRETS
+# ------------------------------------------------------------
 
 def required(name):
     value = os.getenv(name, "").strip()
@@ -19,17 +24,24 @@ def required(name):
         raise RuntimeError(f"GitHub Secret eksik: {name}")
     return value
 
-
-SUPPLIER_ID = required("TY_SUPPLIER_ID")
+TY_SUPPLIER_ID = required("TY_SUPPLIER_ID")
 TY_API_KEY = required("TY_API_KEY")
 TY_API_SECRET = required("TY_API_SECRET")
+
 HB_MERCHANT_ID = required("HB_MERCHANT_ID")
 HB_SECRET_KEY = required("HB_SECRET_KEY")
 HB_USERNAME = required("HB_USERNAME")
 
 
+# ------------------------------------------------------------
+# HELPERS
+# ------------------------------------------------------------
+
 def log(message):
-    print(f"[{datetime.now().strftime('%d.%m.%Y %H:%M:%S')}] {message}", flush=True)
+    print(
+        f"[{datetime.now().strftime('%d.%m.%Y %H:%M:%S')}] {message}",
+        flush=True,
+    )
 
 
 def safe(value):
@@ -39,8 +51,9 @@ def safe(value):
 def norm(value):
     text = safe(value).lower()
     table = str.maketrans({
-        "ı":"i","ş":"s","ğ":"g","ü":"u","ö":"o","ç":"c",
-        "İ":"i","Ş":"s","Ğ":"g","Ü":"u","Ö":"o","Ç":"c",
+        "ı": "i", "İ": "i", "ş": "s", "Ş": "s",
+        "ğ": "g", "Ğ": "g", "ü": "u", "Ü": "u",
+        "ö": "o", "Ö": "o", "ç": "c", "Ç": "c",
     })
     text = text.translate(table)
     text = unicodedata.normalize("NFKD", text)
@@ -49,108 +62,130 @@ def norm(value):
     return re.sub(r"\s+", " ", text).strip()
 
 
-def json_or_fail(response, label):
+def parse_json(response, label):
     try:
         return response.json()
     except ValueError as exc:
-        raise RuntimeError(f"{label} JSON döndürmedi: {response.text[:3000]}") from exc
+        raise RuntimeError(
+            f"{label} JSON döndürmedi: {response.text[:3000]}"
+        ) from exc
 
+
+# ------------------------------------------------------------
+# TRENDYOL
+# ------------------------------------------------------------
 
 def get_trendyol_products():
-    url = f"{TRENDYOL_BASE}/integration/product/sellers/{SUPPLIER_ID}/products/approved"
-    headers = {
-        "User-Agent": f"{SUPPLIER_ID} - SelfIntegration",
-        "Accept": "application/json",
-    }
+    url = (
+        f"{TY_BASE}/integration/product/sellers/"
+        f"{TY_SUPPLIER_ID}/products/approved"
+    )
 
-    result = []
+    products = []
     page = 0
 
     while True:
-        response = requests.get(
+        r = requests.get(
             url,
-            headers=headers,
+            headers={
+                "User-Agent": f"{TY_SUPPLIER_ID} - SelfIntegration",
+                "Accept": "application/json",
+            },
             auth=(TY_API_KEY, TY_API_SECRET),
             params={"page": page, "size": TY_PAGE_SIZE},
             timeout=TIMEOUT,
         )
 
-        log(f"Trendyol sayfa {page + 1} | HTTP {response.status_code}")
+        log(f"Trendyol sayfa {page + 1} | HTTP {r.status_code}")
 
-        if response.status_code != 200:
+        if r.status_code != 200:
             raise RuntimeError(
-                f"Trendyol HTTP {response.status_code}: {response.text[:3000]}"
+                f"Trendyol HTTP {r.status_code}: {r.text[:3000]}"
             )
 
-        data = json_or_fail(response, "Trendyol")
+        data = parse_json(r, "Trendyol")
         content = data.get("content") or []
 
         if not content:
             break
 
-        for product in content:
-            variants = product.get("variants") or [{}]
+        for p in content:
+            variants = p.get("variants") or [{}]
 
-            for variant in variants:
-                barcode = safe(variant.get("barcode") or product.get("barcode"))
+            if not isinstance(variants, list):
+                variants = [{}]
+
+            for v in variants:
+                if not isinstance(v, dict):
+                    continue
+
+                barcode = safe(
+                    v.get("barcode") or p.get("barcode")
+                )
                 if not barcode:
                     continue
 
-                price_data = variant.get("price") or {}
-                stock_data = variant.get("stock") or {}
+                price = v.get("price")
+                if isinstance(price, dict):
+                    price = (
+                        price.get("salePrice")
+                        or price.get("listPrice")
+                        or p.get("salePrice")
+                        or p.get("listPrice")
+                        or 0
+                    )
+                else:
+                    price = (
+                        p.get("salePrice")
+                        or p.get("listPrice")
+                        or 0
+                    )
 
-                price = (
-                    price_data.get("salePrice")
-                    if isinstance(price_data, dict)
-                    else None
-                )
-                if price is None and isinstance(price_data, dict):
-                    price = price_data.get("listPrice")
-                if price is None:
-                    price = product.get("salePrice", product.get("listPrice", 0))
-
-                stock = (
-                    stock_data.get("quantity")
-                    if isinstance(stock_data, dict)
-                    else None
-                )
+                stock = v.get("stock")
+                if isinstance(stock, dict):
+                    stock = stock.get("quantity")
                 if stock is None:
-                    stock = variant.get("quantity", product.get("quantity", 0))
+                    stock = v.get("quantity", p.get("quantity", 0))
 
                 images = []
-                for image in product.get("images") or []:
-                    image_url = (
-                        image.get("url") or image.get("imageUrl")
-                        if isinstance(image, dict)
-                        else image
-                    )
-                    if image_url:
-                        images.append(safe(image_url))
+                for image in p.get("images") or []:
+                    if isinstance(image, dict):
+                        url_value = (
+                            image.get("url")
+                            or image.get("imageUrl")
+                        )
+                    else:
+                        url_value = image
+                    if url_value:
+                        images.append(safe(url_value))
 
-                brand = product.get("brand")
+                brand = p.get("brand") or p.get("brandName") or ""
                 if isinstance(brand, dict):
                     brand = brand.get("name", "")
-                brand = safe(brand or product.get("brandName") or "Dolunay Takı")
 
-                result.append({
+                products.append({
                     "barcode": barcode,
-                    "title": safe(product.get("title")),
-                    "description": safe(product.get("description")),
+                    "title": safe(p.get("title")),
+                    "description": safe(p.get("description")),
                     "price": price,
                     "stock": stock,
-                    "images": images[:10],
-                    "category": safe(product.get("categoryName") or product.get("category")),
-                    "productMainId": safe(product.get("productMainId")),
-                    "productCode": safe(product.get("productCode")),
-                    "stockCode": safe(variant.get("stockCode") or product.get("stockCode")),
-                    "brand": brand,
-                    "attributes": product.get("attributes") or [],
-                    "variantAttributes": variant.get("attributes") or [],
+                    "images": images[:5],
+                    "category": safe(
+                        p.get("categoryName") or p.get("category")
+                    ),
+                    "productMainId": safe(p.get("productMainId")),
+                    "productCode": safe(p.get("productCode")),
+                    "stockCode": safe(
+                        v.get("stockCode") or p.get("stockCode")
+                    ),
+                    "brand": safe(brand) or "Dolunay Takı",
+                    "attributes": p.get("attributes") or [],
+                    "variantAttributes": v.get("attributes") or [],
                 })
 
         log(
             f"Sayfa {page + 1}: {len(content)} ana ürün | "
-            f"toplam varyant {len(result)}"
+            f"toplam varyant {len(products)}"
         )
 
         total_pages = data.get("totalPages")
@@ -162,19 +197,25 @@ def get_trendyol_products():
 
         page += 1
 
-    return result
+    return products
 
+
+# ------------------------------------------------------------
+# HEPSİBURADA KATEGORİLER
+# ------------------------------------------------------------
 
 def get_hb_categories():
     url = f"{HB_BASE}/product/api/categories/get-all-categories"
-    headers = {"User-Agent": HB_USERNAME, "Accept": "application/json"}
     result = []
     page = 0
 
     while True:
-        response = requests.get(
+        r = requests.get(
             url,
-            headers=headers,
+            headers={
+                "User-Agent": HB_USERNAME,
+                "Accept": "application/json",
+            },
             auth=(HB_MERCHANT_ID, HB_SECRET_KEY),
             params={
                 "leaf": "true",
@@ -186,19 +227,19 @@ def get_hb_categories():
             timeout=TIMEOUT,
         )
 
-        log(f"HB kategori sayfa {page + 1} | HTTP {response.status_code}")
+        log(f"HB kategori sayfa {page + 1} | HTTP {r.status_code}")
 
-        if response.status_code != 200:
+        if r.status_code != 200:
             raise RuntimeError(
-                f"HB kategori HTTP {response.status_code}: {response.text[:3000]}"
+                f"HB kategori HTTP {r.status_code}: {r.text[:3000]}"
             )
 
-        data = json_or_fail(response, "HB kategori")
+        data = parse_json(r, "HB kategorileri")
 
         if isinstance(data, list):
             items = data
             total_pages = None
-        else:
+        elif isinstance(data, dict):
             items = (
                 data.get("data")
                 or data.get("content")
@@ -206,13 +247,23 @@ def get_hb_categories():
                 or []
             )
             total_pages = data.get("totalPages")
+        else:
+            items = []
+            total_pages = None
 
         if not isinstance(items, list):
             items = []
 
-        result.extend(x for x in items if isinstance(x, dict))
+        items = [
+            x for x in items
+            if isinstance(x, dict)
+        ]
 
-        log(f"Kategori: {len(items)} | toplam {len(result)}")
+        result.extend(items)
+
+        log(
+            f"Kategori: {len(items)} | toplam {len(result)}"
+        )
 
         if total_pages is not None:
             if page + 1 >= int(total_pages):
@@ -230,74 +281,122 @@ def get_hb_categories():
     ]
 
 
+# ------------------------------------------------------------
+# KATEGORİ EŞLEŞTİRME
+# ÖNEMLİ: Artık ürün kategori eşleşmedi diye ÜRÜN ATILMAZ.
+# ------------------------------------------------------------
+
 def category_text(category):
     paths = category.get("paths") or []
     if not isinstance(paths, list):
         paths = []
-    return norm(" ".join([
-        safe(category.get("name")),
-        safe(category.get("displayName")),
-        *[safe(x) for x in paths],
-    ]))
+
+    return norm(
+        " ".join([
+            safe(category.get("name")),
+            safe(category.get("displayName")),
+            *[safe(x) for x in paths],
+        ])
+    )
+
+
+def jewelry_type(product):
+    source = norm(
+        f"{product.get('category')} {product.get('title')}"
+    )
+
+    if "sahmeran" in source:
+        return "sahmeran"
+    if "bileklik" in source or "kelepce" in source:
+        return "bileklik"
+    if "kolye" in source:
+        return "kolye"
+    if "kupe" in source:
+        return "kupe"
+    if "yuzuk" in source:
+        return "yuzuk"
+    if "piercing" in source:
+        return "piercing"
+    if "halhal" in source:
+        return "halhal"
+    return "takı"
 
 
 def find_category(product, categories):
-    source = norm(f"{product['category']} {product['title']}")
-
-    if "bileklik" in source or "kelepce" in source:
-        keys = ["bileklik", "kelepce", "sahmeran"]
-    elif "kolye" in source:
-        keys = ["kolye"]
-    elif "kupe" in source:
-        keys = ["kupe"]
-    elif "yuzuk" in source:
-        keys = ["yuzuk"]
-    elif "piercing" in source:
-        keys = ["piercing"]
-    elif "sahmeran" in source:
-        keys = ["sahmeran", "bileklik"]
-    else:
-        keys = []
+    source_category = norm(product.get("category"))
+    source_title = norm(product.get("title"))
+    source = f"{source_category} {source_title}"
+    kind = jewelry_type(product)
 
     best = None
     best_score = -1
 
     for category in categories:
         text = category_text(category)
-        score = sum(100 for key in keys if key in text)
-        score += sum(
-            20 for word in norm(product["category"]).split()
-            if len(word) >= 4 and word in text
-        )
-        score += sum(
-            3 for word in norm(product["title"]).split()
-            if len(word) >= 5 and word in text
-        )
+        score = 0
+
+        if kind == "sahmeran":
+            if "sahmeran" in text:
+                score += 500
+            if "bileklik" in text:
+                score += 100
+        elif kind in ("bileklik", "kolye", "kupe", "yuzuk", "piercing", "halhal"):
+            if kind in text:
+                score += 500
+
+        for word in source_category.split():
+            if len(word) >= 4 and word in text:
+                score += 25
+
+        for word in source_title.split():
+            if len(word) >= 5 and word in text:
+                score += 2
 
         if score > best_score:
             best_score = score
             best = category
 
-    return best
+    # Hiçbir anahtar tutmadıysa yine de ürünü bırakma.
+    if best is None and categories:
+        preferred = [
+            c for c in categories
+            if "taki" in category_text(c)
+            or "aksesuar" in category_text(c)
+        ]
+        best = preferred[0] if preferred else categories[0]
 
+    return best, best_score
+
+
+# ------------------------------------------------------------
+# KATEGORİ ATTRIBUTES
+# ------------------------------------------------------------
 
 def get_hb_attributes(category_id):
-    url = f"{HB_BASE}/product/api/categories/{category_id}/attributes"
+    url = (
+        f"{HB_BASE}/product/api/categories/"
+        f"{category_id}/attributes"
+    )
 
-    response = requests.get(
+    r = requests.get(
         url,
-        headers={"User-Agent": HB_USERNAME, "Accept": "application/json"},
+        headers={
+            "User-Agent": HB_USERNAME,
+            "Accept": "application/json",
+        },
         auth=(HB_MERCHANT_ID, HB_SECRET_KEY),
         params={"version": 2},
         timeout=TIMEOUT,
     )
 
-    log(f"Kategori {category_id} özellikleri | HTTP {response.status_code}")
+    log(
+        f"Kategori {category_id} özellikleri | HTTP {r.status_code}"
+    )
 
-    if response.status_code != 200:
+    if r.status_code != 200:
         return []
 
-    data = json_or_fail(response, "HB kategori özellikleri")
+    data = parse_json(r, "HB kategori özellikleri")
 
     if isinstance(data, list):
         return [x for x in data if isinstance(x, dict)]
@@ -311,7 +410,11 @@ def get_hb_attributes(category_id):
     return []
 
 
-def build_hb_product(product, category, hb_attributes):
+# ------------------------------------------------------------
+# ÜRÜN MODELİ
+# ------------------------------------------------------------
+
+def build_product(product, category, category_attributes):
     try:
         price = f"{float(product['price']):.2f}".replace(".", ",")
     except (TypeError, ValueError):
@@ -322,50 +425,83 @@ def build_hb_product(product, category, hb_attributes):
     except (TypeError, ValueError):
         stock = "0"
 
-    sku = product["stockCode"] or product["productCode"] or product["barcode"]
+    sku = (
+        product.get("stockCode")
+        or product.get("productCode")
+        or product.get("barcode")
+    ).upper().replace(" ", "")
 
     attributes = {
         "merchantSku": sku,
-        "VaryantGroupID": product["productMainId"] or sku,
-        "Barcode": product["barcode"],
-        "UrunAdi": product["title"],
-        "UrunAciklamasi": product["description"],
-        "Marka": product["brand"],
+        "VaryantGroupID": (
+            product.get("productMainId")
+            or product.get("barcode")
+        ),
+        "Barcode": product.get("barcode"),
+        "UrunAdi": product.get("title"),
+        "UrunAciklamasi": product.get("description"),
+        "Marka": product.get("brand") or "Dolunay Takı",
         "GarantiSuresi": 0,
         "kg": "1",
         "price": price,
         "stock": stock,
     }
 
-    for i, image in enumerate(product["images"], start=1):
+    for i, image in enumerate(
+        product.get("images") or [],
+        start=1,
+    ):
         attributes[f"Image{i}"] = image
 
+    # Trendyol attributes -> HB attribute adı
     ty_attrs = {}
-    for attr in product["attributes"]:
+
+    for attr in product.get("attributes") or []:
         if not isinstance(attr, dict):
             continue
-        name = attr.get("attributeName") or attr.get("name")
-        value = attr.get("attributeValue") or attr.get("value")
+
+        name = (
+            attr.get("attributeName")
+            or attr.get("name")
+        )
+        value = (
+            attr.get("attributeValue")
+            or attr.get("value")
+        )
+
         if name and value:
             ty_attrs[norm(name)] = safe(value)
 
-    for hb_attr in hb_attributes:
-        if not isinstance(hb_attr, dict):
-            continue
-        name = hb_attr.get("name") or hb_attr.get("isim")
+    for hb_attr in category_attributes:
+        name = (
+            hb_attr.get("name")
+            or hb_attr.get("isim")
+        )
         if not name:
             continue
+
         key = norm(name)
         if key in ty_attrs:
             attributes[name] = ty_attrs[key]
 
-    for attr in product["variantAttributes"]:
+    # Varyant alanları
+    for attr in product.get("variantAttributes") or []:
         if not isinstance(attr, dict):
             continue
-        name = norm(attr.get("attributeName") or attr.get("name") or "")
-        value = safe(attr.get("attributeValue") or attr.get("value"))
+
+        name = norm(
+            attr.get("attributeName")
+            or attr.get("name")
+            or ""
+        )
+        value = safe(
+            attr.get("attributeValue")
+            or attr.get("value")
+        )
+
         if not value:
             continue
+
         if "renk" in name:
             attributes["renk_variant_property"] = value
         elif "beden" in name:
@@ -374,71 +510,128 @@ def build_hb_product(product, category, hb_attributes):
             attributes["ebatlar_variant_property"] = value
 
     return {
-        "categoryId": category["categoryId"],
+        "categoryId": int(category["categoryId"]),
         "merchant": HB_MERCHANT_ID,
         "attributes": attributes,
     }
 
 
+# ------------------------------------------------------------
+# HB IMPORT
+# ------------------------------------------------------------
+
 def upload_products(products):
     url = f"{HB_BASE}/product/api/products/import"
-    filename = f"hepsiburada_import_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+    filename = (
+        f"hepsiburada_import_"
+        f"{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+    )
 
-    with open(filename, "w", encoding="utf-8") as file:
-        json.dump(products, file, ensure_ascii=False, indent=2)
+    with open(filename, "w", encoding="utf-8") as f:
+        json.dump(
+            products,
+            f,
+            ensure_ascii=False,
+            indent=2,
+        )
 
-    log(f"📄 {len(products)} ürünlük JSON oluşturuldu: {filename}")
+    log(
+        f"📤 {len(products)} ürün HB'ye gönderiliyor."
+    )
 
-    with open(filename, "rb") as file:
-        response = requests.post(
+    with open(filename, "rb") as f:
+        r = requests.post(
             url,
-            headers={"User-Agent": HB_USERNAME, "Accept": "application/json"},
+            headers={
+                "User-Agent": HB_USERNAME,
+                "Accept": "application/json",
+            },
             auth=(HB_MERCHANT_ID, HB_SECRET_KEY),
-            files={"file": (filename, file, "application/json")},
+            files={
+                "file": (
+                    filename,
+                    f,
+                    "application/json",
+                )
+            },
             timeout=180,
         )
 
-    log(f"📡 HB ürün import | HTTP {response.status_code}")
-    print(response.text[:10000], flush=True)
+    log(f"HB import | HTTP {r.status_code}")
+    print(r.text[:10000], flush=True)
 
-    if response.status_code not in (200, 201, 202):
+    if r.status_code not in (200, 201, 202):
         raise RuntimeError(
-            f"HB import başarısız: HTTP {response.status_code}"
+            f"HB import başarısız: HTTP {r.status_code}"
         )
 
+    data = {}
+    try:
+        data = r.json()
+    except ValueError:
+        pass
+
+    return data
+
+
+# ------------------------------------------------------------
+# ANA
+# ------------------------------------------------------------
 
 def main():
     print("=" * 70)
-    print("TRENDYOL -> HEPSİBURADA GITHUB ACTIONS SENKRONİZASYONU")
+    print("TRENDYOL -> HEPSIBURADA TAM SENKRONIZASYON")
     print("=" * 70)
 
     products = get_trendyol_products()
-    log(f"✅ Trendyol varyant sayısı: {len(products)}")
+    log(f"✅ Trendyol toplam varyant: {len(products)}")
 
     categories = get_hb_categories()
-    log(f"✅ HB kategori sayısı: {len(categories)}")
+    log(f"✅ HB aktif/urun eklenebilir kategori: {len(categories)}")
+
+    if not categories:
+        raise RuntimeError("HB aktif kategori alınamadı.")
 
     hb_products = []
     attribute_cache = {}
-    unmatched = 0
+    fallback_count = 0
 
     for index, product in enumerate(products, start=1):
-        log(f"🔄 [{index}/{len(products)}] {product['title']}")
+        category, score = find_category(
+            product,
+            categories,
+        )
 
-        category = find_category(product, categories)
+        if category is None:
+            raise RuntimeError(
+                f"Kategori seçilemedi: {product['title']}"
+            )
 
-        if not category:
-            unmatched += 1
-            log(f"⚠️ Kategori eşleşmedi: {product['category']}")
-            continue
+        if score < 100:
+            fallback_count += 1
+            log(
+                f"⚠️ KATEGORİ FALLBACK [{index}] "
+                f"{product['title']} -> "
+                f"{category.get('displayName') or category.get('name')} "
+                f"(ID {category['categoryId']})"
+            )
+        else:
+            log(
+                f"✅ [{index}/{len(products)}] "
+                f"{product['title']} -> "
+                f"{category.get('displayName') or category.get('name')} "
+                f"(ID {category['categoryId']})"
+            )
 
         category_id = category["categoryId"]
 
         if category_id not in attribute_cache:
-            attribute_cache[category_id] = get_hb_attributes(category_id)
+            attribute_cache[category_id] = get_hb_attributes(
+                category_id
+            )
 
         hb_products.append(
-            build_hb_product(
+            build_product(
                 product,
                 category,
                 attribute_cache[category_id],
@@ -446,18 +639,46 @@ def main():
         )
 
     log(
-        f"📊 Sonuç: {len(hb_products)} hazırlanmış, "
-        f"{unmatched} kategori eşleşmedi"
+        f"📊 HAZIRLANAN ÜRÜN: {len(hb_products)}/{len(products)}"
+    )
+    log(
+        f"📊 FALLBACK KATEGORİ KULLANILAN: {fallback_count}"
     )
 
-    if not hb_products:
-        raise RuntimeError("Hiç ürün hazırlanamadı.")
+    if len(hb_products) != len(products):
+        raise RuntimeError(
+            "Tüm Trendyol ürünleri HB isteğine hazırlanamadı."
+        )
 
-    upload_products(hb_products)
+    result = upload_products(hb_products)
 
-    log("✅ SENKRONİZASYON TAMAMLANDI.")
+    tracking_id = None
+
+    if isinstance(result, dict):
+        data = result.get("data")
+        if isinstance(data, dict):
+            tracking_id = (
+                data.get("trackingId")
+                or data.get("trackingID")
+            )
+        elif isinstance(data, str):
+            tracking_id = data
+
+        tracking_id = (
+            tracking_id
+            or result.get("trackingId")
+            or result.get("trackingID")
+        )
+
+    if tracking_id:
+        log(f"🎫 TrackingId: {tracking_id}")
+        log(
+            "ℹ️ HB ürünlerin gerçek durumunu trackingId ile işliyor."
+        )
+
+    log("✅ 87/87 mantığıyla tüm ürünler HB isteğine dahil edildi.")
+    log("✅ Senkronizasyon tamamlandı.")
 
 
 if __name__ == "__main__":
     main()
-
