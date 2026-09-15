@@ -24,12 +24,21 @@ def required(name):
     return value
 
 
-SUPPLIER_ID = required("TY_SUPPLIER_ID")
+def required_any(*names):
+    for name in names:
+        value = os.getenv(name, "").strip()
+        if value:
+            return value
+    raise RuntimeError(f"GitHub Secret eksik: {' / '.join(names)}")
+
+
+SUPPLIER_ID = required_any("TY_SUPPLIER_ID", "TY_TEDARIKCI_ID")
 TY_API_KEY = required("TY_API_KEY")
 TY_API_SECRET = required("TY_API_SECRET")
-HB_MERCHANT_ID = required("HB_MERCHANT_ID")
+HB_MERCHANT_ID = required_any("HB_MERCHANT_ID", "HB_TUCCAR_ID")
 HB_SECRET_KEY = required("HB_SECRET_KEY")
-HB_USERNAME = required("HB_USERNAME")
+HB_USERNAME = required_any("HB_USERNAME", "HB_KULLANICI_ADI")
+HB_PASSWORD = os.getenv("HB_KULLANICI_SIFRE", "").strip() or HB_SECRET_KEY
 
 
 def log(message):
@@ -426,7 +435,7 @@ def get_hb_listings():
                 "Accept": "application/json",
                 "Content-Type": "application/json",
             },
-            auth=(HB_USERNAME, HB_SECRET_KEY),
+            auth=(HB_USERNAME, HB_PASSWORD),
             params={"offset": offset, "limit": HB_PAGE_SIZE},
             timeout=TIMEOUT,
         )
@@ -554,7 +563,7 @@ def sync_stocks(trendyol_products):
             "Accept": "application/json",
             "Content-Type": "application/json",
         },
-        auth=(HB_USERNAME, HB_SECRET_KEY),
+        auth=(HB_USERNAME, HB_PASSWORD),
         json=updates,
         timeout=TIMEOUT,
     )
@@ -589,7 +598,7 @@ def sync_stocks(trendyol_products):
                 "Accept": "application/json",
                 "Content-Type": "application/json",
             },
-            auth=(HB_USERNAME, HB_SECRET_KEY),
+            auth=(HB_USERNAME, HB_PASSWORD),
             timeout=TIMEOUT,
         )
         log(f"🔎 HB stok işlem kontrolü {attempt}/20 | HTTP {status_response.status_code}")
