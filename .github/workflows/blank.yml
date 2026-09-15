@@ -31,11 +31,15 @@ jobs:
       - name: Senkronizasyon
         env:
           TY_SUPPLIER_ID: ${{ secrets.TY_SUPPLIER_ID }}
+          TY_TEDARIKCI_ID: ${{ secrets.TY_TEDARIKCI_ID }}
           TY_API_KEY: ${{ secrets.TY_API_KEY }}
           TY_API_SECRET: ${{ secrets.TY_API_SECRET }}
           HB_MERCHANT_ID: ${{ secrets.HB_MERCHANT_ID }}
+          HB_TUCCAR_ID: ${{ secrets.HB_TUCCAR_ID }}
           HB_SECRET_KEY: ${{ secrets.HB_SECRET_KEY }}
           HB_USERNAME: ${{ secrets.HB_USERNAME }}
+          HB_KULLANICI_ADI: ${{ secrets.HB_KULLANICI_ADI }}
+          HB_KULLANICI_SIFRE: ${{ secrets.HB_KULLANICI_SIFRE }}
           HB_BASE_URL: https://mpop-sit.hepsiburada.com
           HB_LISTING_BASE_URL: https://listing-external-sit.hepsiburada.com
-        run: python sync.py
+        run: python senkronizasyon.py
