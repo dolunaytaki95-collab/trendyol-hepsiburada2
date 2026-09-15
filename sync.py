@@ -24,21 +24,12 @@ def required(name):
     return value
 
 
-def required_any(*names):
-    for name in names:
-        value = os.getenv(name, "").strip()
-        if value:
-            return value
-    raise RuntimeError(f"GitHub Secret eksik: {' / '.join(names)}")
-
-
-SUPPLIER_ID = required_any("TY_SUPPLIER_ID", "TY_TEDARIKCI_ID")
+SUPPLIER_ID = required("TY_SUPPLIER_ID")
 TY_API_KEY = required("TY_API_KEY")
 TY_API_SECRET = required("TY_API_SECRET")
-HB_MERCHANT_ID = required_any("HB_MERCHANT_ID", "HB_TUCCAR_ID")
+HB_MERCHANT_ID = required("HB_MERCHANT_ID")
 HB_SECRET_KEY = required("HB_SECRET_KEY")
-HB_USERNAME = required_any("HB_USERNAME", "HB_KULLANICI_ADI")
-HB_PASSWORD = os.getenv("HB_KULLANICI_SIFRE", "").strip() or HB_SECRET_KEY
+HB_USERNAME = required("HB_USERNAME")
 
 
 def log(message):
@@ -421,77 +412,66 @@ def upload_products(products):
 
 
 
-
-def normalize_id(value):
-    """Kimlik alanlarını HB'nin istediği boşluksuz/BÜYÜK HARF biçiminde karşılaştırır."""
-    if value is None:
-        return ""
-    text = safe(value)
-    return re.sub(r"\s+", "", text).upper()
-
-
-def _walk_scalars(obj, path=""):
-    """Listing JSON'u nested olsa bile bütün scalar alanları gez."""
-    if isinstance(obj, dict):
-        for key, value in obj.items():
-            child = f"{path}.{key}" if path else str(key)
-            yield from _walk_scalars(value, child)
-    elif isinstance(obj, list):
-        for i, value in enumerate(obj):
-            yield from _walk_scalars(value, f"{path}[{i}]")
-    else:
-        yield path, obj
-
-
-def _key_norm(key):
-    return re.sub(r"[^a-z0-9]", "", safe(key).lower())
-
-
-def extract_listing_ids(item):
-    """Listing içinden merchant SKU / HB SKU / barkod alanlarını güvenli biçimde çıkarır."""
-    aliases = {
-        "merchantsku", "sellersku", "sku", "hepsiburadaSku".lower(), "hbsku",
-        "barcode", "barcodes", "ean", "productbarcode", "productsku",
-        "listingid", "merchantproductid"
+def _collect_listing_fields(obj):
+    """
+    Hepsiburada listing yanıtında alanlar farklı seviyelerde/nested gelebilir.
+    İlk görülen dolu değerleri topla.
+    """
+    found = {
+        "merchantSku": "",
+        "hbSku": "",
+        "barcode": "",
+        "name": "",
+        "availableStock": None,
+        "isFulfilledByHB": False,
     }
-    values = {"merchant": set(), "hb": set(), "barcode": set()}
 
-    for path, value in _walk_scalars(item):
-        key = _key_norm(path.split(".")[-1]).strip("[]0123456789")
-        nv = normalize_id(value)
-        if not nv:
-            continue
-        if key in {"merchantsku", "sellersku", "sku", "productsku", "merchantproductid"}:
-            values["merchant"].add(nv)
-        elif key in {"hepsiburdasku", "hbsku"}:
-            values["hb"].add(nv)
-        elif key in {"barcode", "barcodes", "ean", "productbarcode"}:
-            values["barcode"].add(nv)
+    merchant_keys = {"merchantsku", "merchantsku", "seller_sku", "sellersku"}
+    hb_keys = {"hbsku", "hepsiburadaSku".lower(), "hepsiburada_sku", "hepsiburadaid"}
+    barcode_keys = {"barcode", "ean", "ean13", "gtin"}
+    name_keys = {"productname", "name", "product_name", "title"}
+    stock_keys = {"availablestock", "availablestockinfo", "available_stock", "stock"}
 
-    return values
+    def walk(x):
+        if isinstance(x, dict):
+            for raw_k, raw_v in x.items():
+                k = safe(raw_k).replace("-", "_").lower()
 
+                if isinstance(raw_v, (str, int, float)) and raw_v not in ("", None):
+                    if not found["merchantSku"] and k in merchant_keys:
+                        found["merchantSku"] = safe(raw_v)
+                    if not found["hbSku"] and k in hb_keys:
+                        found["hbSku"] = safe(raw_v)
+                    if not found["barcode"] and k in barcode_keys:
+                        found["barcode"] = safe(raw_v)
+                    if not found["name"] and k in name_keys:
+                        found["name"] = safe(raw_v)
+                    if found["availableStock"] is None and k in stock_keys:
+                        found["availableStock"] = raw_v
 
-def extract_listing_title(item):
-    candidates = []
-    preferred = {
-        "productname", "producttitle", "title", "name", "urunadi", "productnametr"
-    }
-    for path, value in _walk_scalars(item):
-        key = _key_norm(path.split(".")[-1]).strip("[]0123456789")
-        if key in preferred:
-            text = safe(value)
-            if text:
-                candidates.append(text)
-    return candidates[0] if candidates else ""
+                if k in {"isfulfilledbyhb", "is_fulfilled_by_hb"} and raw_v is True:
+                    found["isFulfilledByHB"] = True
+
+                walk(raw_v)
+
+        elif isinstance(x, list):
+            for item in x:
+                walk(item)
+
+    walk(obj)
+    return found
 
 
 def get_hb_listings():
-    """Hepsiburada listinglerini tam ve nested alanları koruyarak çeker."""
+    """Hepsiburada listinglerini gerçek pagination ile eksiksiz çeker."""
     url = f"{HB_LISTING_BASE}/listings/merchantid/{HB_MERCHANT_ID}"
     result = []
     offset = 0
+    page_size = 30
+    seen_page_signatures = set()
+    max_pages = 200
 
-    while True:
+    for page_no in range(1, max_pages + 1):
         response = requests.get(
             url,
             headers={
@@ -499,26 +479,47 @@ def get_hb_listings():
                 "Accept": "application/json",
                 "Content-Type": "application/json",
             },
-            auth=(HB_USERNAME, HB_PASSWORD),
-            params={"offset": offset, "limit": HB_PAGE_SIZE},
+            auth=(HB_MERCHANT_ID, HB_SECRET_KEY),
+            params={"offset": offset, "limit": page_size},
             timeout=TIMEOUT,
         )
 
-        log(f"HB listing offset={offset} | HTTP {response.status_code}")
+        log(f"HB listing offset={offset} limit={page_size} | HTTP {response.status_code}")
+
         if response.status_code != 200:
             raise RuntimeError(
                 f"HB listing HTTP {response.status_code}: {response.text[:5000]}"
             )
 
         data = json_or_fail(response, "HB listing")
+
         if isinstance(data, list):
             items = data
             total_count = None
         elif isinstance(data, dict):
-            items = data.get("listings") or data.get("items") or data.get("data") or []
-            total_count = data.get("totalCount")
+            items = (
+                data.get("listings")
+                or data.get("items")
+                or data.get("data")
+                or data.get("content")
+                or []
+            )
+            total_count = (
+                data.get("totalCount")
+                or data.get("total")
+                or data.get("count")
+                or data.get("totalItems")
+            )
+
             if isinstance(items, dict):
-                items = items.get("listings") or items.get("items") or items.get("data") or []
+                total_count = total_count or items.get("totalCount") or items.get("total")
+                items = (
+                    items.get("listings")
+                    or items.get("items")
+                    or items.get("data")
+                    or items.get("content")
+                    or []
+                )
         else:
             items = []
             total_count = None
@@ -526,160 +527,215 @@ def get_hb_listings():
         if not isinstance(items, list):
             items = []
 
-        result.extend(x for x in items if isinstance(x, dict))
-
         if not items:
             break
-        if total_count is not None and len(result) >= int(total_count):
-            break
-        if len(items) < HB_PAGE_SIZE:
-            break
 
+        # Aynı sayfa tekrar dönüyorsa sonsuz döngüyü engelle.
+        first_sig = json.dumps(items[:2], ensure_ascii=False, sort_keys=True, default=str)
+        last_sig = json.dumps(items[-2:], ensure_ascii=False, sort_keys=True, default=str)
+        page_signature = (first_sig, last_sig, len(items))
+        if page_signature in seen_page_signatures:
+            raise RuntimeError(
+                "HB listing pagination aynı sayfayı tekrar döndürüyor; "
+                "stok güncellemesi durduruldu."
+            )
+        seen_page_signatures.add(page_signature)
+
+        result.extend(x for x in items if isinstance(x, dict))
+
+        # 30'luk sayfalar geliyor olsa bile offset'i mutlaka ilerlet.
         offset += len(items)
 
+        if total_count is not None:
+            try:
+                if len(result) >= int(total_count):
+                    break
+            except (TypeError, ValueError):
+                pass
+
+        # Limit kadar geldiyse bir sonraki sayfayı sor.
+        # Limit'ten küçük dönse bile totalCount yoksa yine bir kez daha
+        # sorgulamak yerine mevcut API davranışını güvenli şekilde bitir.
+        if len(items) < page_size:
+            # Bazı HB cevapları maksimum 30 döndürüp totalCount vermeyebiliyor.
+            # Bu durumda boş sayfaya kadar devam etmek daha güvenilir.
+            continue
+
+    else:
+        raise RuntimeError(f"HB listing pagination {max_pages} sayfayı aştı.")
+
     log(f"✅ HB listing toplamı: {len(result)}")
-    return result
 
+    # Eşleştirme için normalize edilmiş alanları kaydet.
+    normalized = []
+    for item in result:
+        fields = _collect_listing_fields(item)
+        normalized.append({
+            "_raw": item,
+            "_fields": fields,
+        })
 
-def find_hb_listing(product, listings):
-    """Önce kesin ID eşleşmesi, sonra güvenli tam başlık eşleşmesi yapar."""
-    candidates = {
-        normalize_id(product.get("stockCode")),
-        normalize_id(product.get("productCode")),
-        normalize_id(product.get("barcode")),
-    }
-    candidates.discard("")
-    title = norm(product.get("title"))
+    # İlk 5 kaydı teşhis için yalnızca hassas olmayan alanlarla yaz.
+    for idx, entry in enumerate(normalized[:5], start=1):
+        f = entry["_fields"]
+        log(
+            f"🔎 HB listing örnek {idx} | "
+            f"merchantSku={f['merchantSku']} | "
+            f"hbSku={f['hbSku']} | "
+            f"barcode={f['barcode']} | "
+            f"stock={f['availableStock']}"
+        )
 
-    # 1) merchantSku / hbSku / barcode üzerinde kesin eşleşme
-    exact = []
-    for item in listings:
-        ids = extract_listing_ids(item)
-        all_ids = ids["merchant"] | ids["hb"] | ids["barcode"]
-        if candidates & all_ids:
-            exact.append(item)
-
-    if len(exact) == 1:
-        return exact[0], "ID"
-    if len(exact) > 1:
-        # Merchant SKU eşleşmesi varsa onu tercih et.
-        for item in exact:
-            ids = extract_listing_ids(item)
-            if candidates & ids["merchant"]:
-                return item, "merchantSku"
-        return None, "AMBIGUOUS"
-
-    # 2) Tam normalize edilmiş ürün adı: yanlış ürüne stok yazmamak için fuzzy yok.
-    if title:
-        title_hits = []
-        for item in listings:
-            item_title = norm(extract_listing_title(item))
-            if item_title and item_title == title:
-                title_hits.append(item)
-        if len(title_hits) == 1:
-            return title_hits[0], "TITLE"
-        if len(title_hits) > 1:
-            return None, "AMBIGUOUS_TITLE"
-
-    return None, "MISSING"
-
+    return normalized
 
 def sync_stocks(trendyol_products):
-    """Trendyol quantity değerlerini Hepsiburada Listing Envanter servisine aktarır."""
-    listings = get_hb_listings()
+    """Trendyol stoklarını Hepsiburada listing inventory servisine aktarır."""
+    listing_rows = get_hb_listings()
 
-    # İlk birkaç listingin gerçek kimlik alanlarını logla; eşleşme sorununu tekrar yaşatmamak için.
-    for i, item in enumerate(listings[:5], start=1):
-        ids = extract_listing_ids(item)
-        title = extract_listing_title(item)
-        log(
-            f"🔎 HB örnek listing #{i} | merchant={sorted(ids['merchant'])[:3]} | "
-            f"hb={sorted(ids['hb'])[:3]} | barcode={sorted(ids['barcode'])[:3]} | "
-            f"title={title[:120]}"
-        )
+    by_merchant_sku = {}
+    by_hb_sku = {}
+    by_barcode = {}
+    by_name = {}
+
+    for row in listing_rows:
+        fields = row["_fields"]
+
+        merchant_sku = sku_key(fields.get("merchantSku"))
+        hb_sku = sku_key(fields.get("hbSku"))
+        barcode = sku_key(fields.get("barcode"))
+        name = norm(fields.get("name"))
+
+        if merchant_sku:
+            by_merchant_sku[merchant_sku] = row
+        if hb_sku:
+            by_hb_sku[hb_sku] = row
+        if barcode:
+            by_barcode[barcode] = row
+        if name:
+            by_name[name] = row
 
     updates = []
     matched = 0
     missing = 0
     unchanged = 0
-    ambiguous = 0
-
-    seen_hb_skus = set()
+    seen_target = set()
 
     for product in trendyol_products:
-        item, match_type = find_hb_listing(product, listings)
+        candidates = [
+            product.get("stockCode"),
+            product.get("productCode"),
+            product.get("barcode"),
+        ]
 
-        if not item:
-            if match_type.startswith("AMBIGUOUS"):
-                ambiguous += 1
-                log(f"⚠️ HB listing eşleşmesi belirsiz | {product['title']}")
-            else:
-                missing += 1
-                log(
-                    f"⚠️ HB listing bulunamadı | {product['title']} | "
-                    f"stockCode={product.get('stockCode')} | "
-                    f"productCode={product.get('productCode')} | "
-                    f"barcode={product.get('barcode')}"
-                )
-            continue
+        row = None
+        matched_key = ""
 
-        ids = extract_listing_ids(item)
-        hb_skus = ids["hb"]
-        merchant_skus = ids["merchant"]
+        # 1) Merchant SKU
+        for candidate in candidates:
+            key = sku_key(candidate)
+            if key and key in by_merchant_sku:
+                row = by_merchant_sku[key]
+                matched_key = f"merchantSku:{key}"
+                break
 
-        if not hb_skus:
-            log(f"⚠️ HB listing bulundu ama hbSku yok | {product['title']}")
+        # 2) HB SKU
+        if row is None:
+            for candidate in candidates:
+                key = sku_key(candidate)
+                if key and key in by_hb_sku:
+                    row = by_hb_sku[key]
+                    matched_key = f"hbSku:{key}"
+                    break
+
+        # 3) Barkod
+        if row is None:
+            barcode_key = sku_key(product.get("barcode"))
+            if barcode_key and barcode_key in by_barcode:
+                row = by_barcode[barcode_key]
+                matched_key = f"barcode:{barcode_key}"
+
+        # 4) Ürün adında yalnızca birebir normalized eşleşme
+        if row is None:
+            product_name = norm(product.get("title"))
+            if product_name and product_name in by_name:
+                row = by_name[product_name]
+                matched_key = f"name:{product_name}"
+
+        if row is None:
             missing += 1
+            log(
+                f"⚠️ HB eşleşmedi | {product['title']} | "
+                f"{product.get('stockCode')} | {product.get('barcode')}"
+            )
             continue
 
-        hb_sku = sorted(hb_skus)[0]
-        if hb_sku in seen_hb_skus:
+        fields = row["_fields"]
+        hb_sku_raw = fields.get("hbSku") or fields.get("merchantSku")
+        hb_sku = safe(hb_sku_raw)
+
+        if not hb_sku:
+            missing += 1
+            log(
+                f"⚠️ HB eşleşti fakat HB SKU yok | {product['title']} | "
+                f"{matched_key}"
+            )
             continue
-        seen_hb_skus.add(hb_sku)
+
+        if fields.get("isFulfilledByHB") is True:
+            log(
+                f"⏭️ HB fulfillment listing atlandı | "
+                f"{hb_sku} | hedef={int(product.get('stock') or 0)}"
+            )
+            continue
+
+        target_stock = max(0, int(product.get("stock") or 0))
+        current_stock = fields.get("availableStock")
+
+        try:
+            current_stock = int(float(current_stock))
+        except (TypeError, ValueError):
+            current_stock = None
 
         matched += 1
 
-        current_stock = None
-        for path, value in _walk_scalars(item):
-            key = _key_norm(path.split(".")[-1]).strip("[]0123456789")
-            if key in {"availablestock", "availablequantity", "stock", "quantity", "inventory"}:
-                try:
-                    current_stock = int(float(value))
-                    break
-                except (TypeError, ValueError):
-                    pass
-
-        try:
-            target_stock = max(0, int(float(product.get("stock") or 0)))
-        except (TypeError, ValueError):
-            target_stock = 0
+        # Aynı SKU iki kez yakalanırsa tek kez gönder.
+        target_key = sku_key(hb_sku)
+        if target_key in seen_target:
+            continue
+        seen_target.add(target_key)
 
         if current_stock == target_stock:
             unchanged += 1
             continue
 
         updates.append({
-            "hepsiburadaSku": hb_sku,
+            "hbSku": hb_sku,
+            "merchantSku": safe(fields.get("merchantSku")),
             "availableStock": target_stock,
+            "maximumPurchasableQuantity": target_stock if target_stock > 0 else 0,
         })
+
         log(
-            f"🔄 STOK DEĞİŞİMİ [{match_type}] | HB={hb_sku} | "
-            f"merchant={sorted(merchant_skus)[:1]} | {current_stock} -> {target_stock}"
+            f"🔄 STOK DEĞİŞİMİ | {hb_sku} | "
+            f"{current_stock} -> {target_stock} | {matched_key}"
         )
 
     log(
-        f"📊 Stok eşleşmesi: {matched} | güncellenecek: {len(updates)} | "
-        f"aynı: {unchanged} | bulunamayan: {missing} | belirsiz: {ambiguous}"
+        f"📊 Stok eşleşmesi: {matched} | "
+        f"güncellenecek: {len(updates)} | "
+        f"aynı: {unchanged} | "
+        f"bulunamayan: {missing}"
     )
 
     if not updates:
         log("✅ Güncellenecek stok yok.")
         return
 
-    if len(updates) > 4000:
-        raise RuntimeError("Tek stok yüklemesinde 4000 SKU limiti aşıldı.")
+    url = (
+        f"{HB_LISTING_BASE}/listings/merchantid/"
+        f"{HB_MERCHANT_ID}/inventory-uploads"
+    )
 
-    url = f"{HB_LISTING_BASE}/listings/merchantid/{HB_MERCHANT_ID}/inventory-uploads"
     response = requests.post(
         url,
         headers={
@@ -687,7 +743,7 @@ def sync_stocks(trendyol_products):
             "Accept": "application/json",
             "Content-Type": "application/json",
         },
-        auth=(HB_USERNAME, HB_PASSWORD),
+        auth=(HB_MERCHANT_ID, HB_SECRET_KEY),
         json=updates,
         timeout=TIMEOUT,
     )
@@ -696,26 +752,43 @@ def sync_stocks(trendyol_products):
     print(response.text[:10000], flush=True)
 
     if response.status_code not in (200, 201, 202):
-        raise RuntimeError(f"HB stok yükleme başarısız: HTTP {response.status_code}")
+        raise RuntimeError(
+            f"HB stok yükleme başarısız: HTTP {response.status_code}: "
+            f"{response.text[:3000]}"
+        )
 
     data = json_or_fail(response, "HB stok yükleme")
+    raw = data.get("data") if isinstance(data, dict) else None
+
     upload_id = ""
-    if isinstance(data, dict):
-        raw = data.get("data")
-        if isinstance(raw, dict):
-            upload_id = safe(raw.get("id") or raw.get("inventoryUploadId") or raw.get("uploadId"))
-        if not upload_id:
-            upload_id = safe(data.get("id") or data.get("inventoryUploadId") or data.get("uploadId"))
+    if isinstance(raw, dict):
+        upload_id = safe(
+            raw.get("inventoryUploadId")
+            or raw.get("id")
+            or raw.get("uploadId")
+        )
+    if not upload_id and isinstance(data, dict):
+        upload_id = safe(
+            data.get("inventoryUploadId")
+            or data.get("id")
+            or data.get("uploadId")
+        )
 
     if not upload_id:
-        raise RuntimeError("HB stok yüklemesi kabul edildi ancak inventoryUploadId dönmedi.")
+        raise RuntimeError(
+            "HB stok yüklemesi kabul edildi ancak inventoryUploadId dönmedi."
+        )
 
     log(f"🆔 HB stok işlem ID: {upload_id}")
 
-    status_url = f"{HB_LISTING_BASE}/listings/merchantid/{HB_MERCHANT_ID}/inventory-uploads/id/{upload_id}"
-    last_status = ""
-    for attempt in range(1, 31):
-        time.sleep(2)
+    status_url = (
+        f"{HB_LISTING_BASE}/listings/merchantid/"
+        f"{HB_MERCHANT_ID}/inventory-uploads/id/{upload_id}"
+    )
+
+    for attempt in range(1, 21):
+        time.sleep(3)
+
         status_response = requests.get(
             status_url,
             headers={
@@ -723,36 +796,45 @@ def sync_stocks(trendyol_products):
                 "Accept": "application/json",
                 "Content-Type": "application/json",
             },
-            auth=(HB_USERNAME, HB_PASSWORD),
+            auth=(HB_MERCHANT_ID, HB_SECRET_KEY),
             timeout=TIMEOUT,
         )
-        log(f"🔎 HB stok işlem kontrolü {attempt}/30 | HTTP {status_response.status_code}")
+
+        log(
+            f"🔎 HB stok işlem kontrolü {attempt}/20 | "
+            f"HTTP {status_response.status_code}"
+        )
+
         if status_response.status_code != 200:
             raise RuntimeError(
-                f"HB stok işlem sorgusu başarısız: HTTP {status_response.status_code}: "
+                f"HB stok işlem sorgusu başarısız: "
+                f"HTTP {status_response.status_code}: "
                 f"{status_response.text[:3000]}"
             )
 
         status_data = json_or_fail(status_response, "HB stok işlem sorgusu")
+
         check = status_data.get("data") if isinstance(status_data, dict) else None
         if not isinstance(check, dict):
             check = status_data if isinstance(status_data, dict) else {}
-        status = safe(check.get("status") or check.get("state")).upper()
-        last_status = status
+
+        status = safe(
+            check.get("status") or check.get("state")
+        ).upper()
+
         log(f"📌 HB stok işlem durumu: {status or 'BİLİNMİYOR'}")
 
         if status in {"SUCCESS", "SUCCEEDED", "COMPLETED", "DONE", "FINISHED"}:
-            errors = check.get("errors") or status_data.get("errors") if isinstance(status_data, dict) else []
-            if errors:
-                print("⚠️ HB stok satır hataları:\n" + json.dumps(errors, ensure_ascii=False, indent=2)[:10000], flush=True)
             log("✅ HB stok güncellemesi tamamlandı.")
             return
+
         if status in {"FAILED", "FAIL", "ERROR"}:
             raise RuntimeError(
-                "HB stok işlemi başarısız: " + json.dumps(status_data, ensure_ascii=False)[:10000]
+                "HB stok işlemi başarısız: "
+                + json.dumps(status_data, ensure_ascii=False)[:10000]
             )
 
-    raise RuntimeError(f"HB stok işlemi 60 saniye içinde tamamlanmadı. Son durum: {last_status or 'BİLİNMİYOR'}")
+    raise RuntimeError("HB stok işlemi 60 saniye içinde tamamlanmadı.")
 
 def main():
     print("=" * 70)
