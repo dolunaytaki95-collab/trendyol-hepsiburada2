@@ -37,8 +37,7 @@ TY_API_KEY = required("TY_API_KEY")
 TY_API_SECRET = required("TY_API_SECRET")
 HB_MERCHANT_ID = required_any("HB_MERCHANT_ID", "HB_TUCCAR_ID")
 HB_SECRET_KEY = required("HB_SECRET_KEY")
-HB_USERNAME = required_any("HB_USERNAME", "HB_KULLANICI_ADI")
-HB_PASSWORD = os.getenv("HB_KULLANICI_SIFRE", "").strip() or HB_SECRET_KEY
+HB_USERNAME = os.getenv("HB_USERNAME", "Dolunay-Taki-Sync").strip() or "Dolunay-Taki-Sync"
 
 
 def log(message):
@@ -435,7 +434,7 @@ def get_hb_listings():
                 "Accept": "application/json",
                 "Content-Type": "application/json",
             },
-            auth=(HB_USERNAME, HB_PASSWORD),
+            auth=(HB_MERCHANT_ID, HB_SECRET_KEY),
             params={"offset": offset, "limit": HB_PAGE_SIZE},
             timeout=TIMEOUT,
         )
@@ -478,7 +477,7 @@ def get_hb_listings():
 
 
 def sku_key(value):
-    return re.sub(r"\\s+", "", safe(value)).upper()
+    return re.sub(r"\s+", "", safe(value)).upper()
 
 
 def sync_stocks(trendyol_products):
@@ -563,7 +562,7 @@ def sync_stocks(trendyol_products):
             "Accept": "application/json",
             "Content-Type": "application/json",
         },
-        auth=(HB_USERNAME, HB_PASSWORD),
+        auth=(HB_MERCHANT_ID, HB_SECRET_KEY),
         json=updates,
         timeout=TIMEOUT,
     )
@@ -598,7 +597,7 @@ def sync_stocks(trendyol_products):
                 "Accept": "application/json",
                 "Content-Type": "application/json",
             },
-            auth=(HB_USERNAME, HB_PASSWORD),
+            auth=(HB_MERCHANT_ID, HB_SECRET_KEY),
             timeout=TIMEOUT,
         )
         log(f"🔎 HB stok işlem kontrolü {attempt}/20 | HTTP {status_response.status_code}")
