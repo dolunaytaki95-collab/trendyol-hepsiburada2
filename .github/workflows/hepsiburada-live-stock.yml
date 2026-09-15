@@ -1,0 +1,43 @@
+name: Trendyol Hepsiburada LIVE Stock Sync
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/5 * * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: trendyol-hepsiburada-live-stock
+  cancel-in-progress: false
+
+jobs:
+  stock-sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Requests
+        run: python -m pip install --upgrade requests
+
+      - name: Live stock sync
+        env:
+          TY_SUPPLIER_ID: ${{ secrets.TY_SUPPLIER_ID }}
+          TY_API_KEY: ${{ secrets.TY_API_KEY }}
+          TY_API_SECRET: ${{ secrets.TY_API_SECRET }}
+
+          # These MUST be LIVE Hepsiburada API credentials.
+          HB_MERCHANT_ID: ${{ secrets.HB_MERCHANT_ID }}
+          HB_SECRET_KEY: ${{ secrets.HB_SECRET_KEY }}
+
+          HB_LISTING_BASE_URL: https://listing-external.hepsiburada.com
+
+        run: python hepsiburada_live_stock_sync.py
