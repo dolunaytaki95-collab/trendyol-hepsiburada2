@@ -42,4 +42,4 @@ jobs:
           HB_KULLANICI_SIFRE: ${{ secrets.HB_KULLANICI_SIFRE }}
           HB_BASE_URL: https://mpop-sit.hepsiburada.com
           HB_LISTING_BASE_URL: https://listing-external-sit.hepsiburada.com
-        run: python senkronizasyon.py
+        run: python sync.py
