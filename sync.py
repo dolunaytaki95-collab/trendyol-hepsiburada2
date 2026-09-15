@@ -2,12 +2,16 @@ import os
 import json
 import re
 import unicodedata
+import time
 from datetime import datetime
 
 import requests
 
 TRENDYOL_BASE = "https://apigw.trendyol.com"
-HB_BASE = os.getenv("HB_BASE_URL", "https://mpop-sit.hepsiburada.com")
+HB_BASE = os.getenv("HB_BASE_URL", "https://mpop-sit.hepsiburada.com").rstrip("/")
+HB_LISTING_BASE = os.getenv("HB_LISTING_BASE_URL", "").strip().rstrip("/")
+if not HB_LISTING_BASE:
+    HB_LISTING_BASE = HB_BASE.replace("mpop-sit.hepsiburada.com", "listing-external-sit.hepsiburada.com").replace("mpop.hepsiburada.com", "listing-external.hepsiburada.com")
 TY_PAGE_SIZE = 100
 HB_PAGE_SIZE = 1000
 TIMEOUT = 60
@@ -407,6 +411,207 @@ def upload_products(products):
         )
 
 
+
+def get_hb_listings():
+    """Hepsiburada mevcut listinglerini çeker. Stok güncellemesi için merchantSku -> hepsiburadaSku eşlemesi yapılır."""
+    url = f"{HB_LISTING_BASE}/listings/merchantid/{HB_MERCHANT_ID}"
+    result = []
+    offset = 0
+
+    while True:
+        response = requests.get(
+            url,
+            headers={
+                "User-Agent": HB_USERNAME,
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+            },
+            auth=(HB_USERNAME, HB_SECRET_KEY),
+            params={"offset": offset, "limit": HB_PAGE_SIZE},
+            timeout=TIMEOUT,
+        )
+
+        log(f"HB listing offset={offset} | HTTP {response.status_code}")
+        if response.status_code != 200:
+            raise RuntimeError(
+                f"HB listing HTTP {response.status_code}: {response.text[:5000]}"
+            )
+
+        data = json_or_fail(response, "HB listing")
+        if isinstance(data, list):
+            items = data
+            total_count = None
+        elif isinstance(data, dict):
+            items = data.get("listings") or data.get("items") or data.get("data") or []
+            total_count = data.get("totalCount")
+            if isinstance(items, dict):
+                items = items.get("listings") or items.get("items") or items.get("data") or []
+        else:
+            items = []
+            total_count = None
+
+        if not isinstance(items, list):
+            items = []
+
+        result.extend(x for x in items if isinstance(x, dict))
+
+        if not items:
+            break
+        if total_count is not None and len(result) >= int(total_count):
+            break
+        if len(items) < HB_PAGE_SIZE:
+            break
+
+        offset += len(items)
+
+    log(f"✅ HB listing toplamı: {len(result)}")
+    return result
+
+
+def sku_key(value):
+    return re.sub(r"\\s+", "", safe(value)).upper()
+
+
+def sync_stocks(trendyol_products):
+    """Trendyol quantity değerlerini Hepsiburada Listing Envanter servisine aktarır."""
+    listings = get_hb_listings()
+
+    by_merchant_sku = {}
+    by_hb_sku = {}
+    for item in listings:
+        merchant_sku = sku_key(item.get("merchantSku") or item.get("merchantSKU"))
+        hb_sku = safe(item.get("hepsiburadaSku") or item.get("hbSku"))
+        if merchant_sku and hb_sku:
+            by_merchant_sku[merchant_sku] = item
+            by_hb_sku[sku_key(hb_sku)] = item
+
+    updates = []
+    matched = 0
+    missing = 0
+    unchanged = 0
+
+    for product in trendyol_products:
+        candidates = [
+            product.get("stockCode"),
+            product.get("productCode"),
+            product.get("barcode"),
+        ]
+        item = None
+        matched_key = ""
+        for candidate in candidates:
+            key = sku_key(candidate)
+            if key and key in by_merchant_sku:
+                item = by_merchant_sku[key]
+                matched_key = key
+                break
+
+        if not item:
+            # Bazı listing cevaplarında merchantSku ile birlikte HB SKU aranabilir.
+            for candidate in candidates:
+                key = sku_key(candidate)
+                if key and key in by_hb_sku:
+                    item = by_hb_sku[key]
+                    matched_key = key
+                    break
+
+        if not item:
+            missing += 1
+            log(f"⚠️ HB listing bulunamadı | {product['title']} | {product.get('barcode')}")
+            continue
+
+        matched += 1
+        hb_sku = safe(item.get("hepsiburadaSku") or item.get("hbSku"))
+        target_stock = int(product.get("stock") or 0)
+        current_stock = item.get("availableStock")
+        try:
+            current_stock = int(float(current_stock))
+        except (TypeError, ValueError):
+            current_stock = None
+
+        if current_stock == target_stock:
+            unchanged += 1
+            continue
+
+        updates.append({
+            "hepsiburadaSku": hb_sku,
+            "merchantSku": safe(item.get("merchantSku")) or safe(matched_key),
+            "availableStock": target_stock,
+            "maximumPurchasableQuantity": max(1, target_stock) if target_stock > 0 else 0,
+        })
+        log(f"🔄 STOK DEĞİŞİMİ | {hb_sku} | {current_stock} -> {target_stock}")
+
+    log(f"📊 Stok eşleşmesi: {matched} | güncellenecek: {len(updates)} | aynı: {unchanged} | bulunamayan: {missing}")
+
+    if not updates:
+        log("✅ Güncellenecek stok yok.")
+        return
+
+    url = f"{HB_LISTING_BASE}/listings/merchantid/{HB_MERCHANT_ID}/inventory-uploads"
+    response = requests.post(
+        url,
+        headers={
+            "User-Agent": HB_USERNAME,
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+        },
+        auth=(HB_USERNAME, HB_SECRET_KEY),
+        json=updates,
+        timeout=TIMEOUT,
+    )
+
+    log(f"📡 HB stok yükleme | HTTP {response.status_code}")
+    print(response.text[:10000], flush=True)
+
+    if response.status_code not in (200, 201, 202):
+        raise RuntimeError(f"HB stok yükleme başarısız: HTTP {response.status_code}")
+
+    data = json_or_fail(response, "HB stok yükleme")
+    raw = data.get("data") if isinstance(data, dict) else None
+    if isinstance(raw, dict):
+        upload_id = safe(raw.get("id") or raw.get("inventoryUploadId") or raw.get("uploadId"))
+    else:
+        upload_id = ""
+    if not upload_id and isinstance(data, dict):
+        upload_id = safe(data.get("id") or data.get("inventoryUploadId") or data.get("uploadId"))
+
+    if not upload_id:
+        raise RuntimeError("HB stok yüklemesi HTTP olarak kabul edildi ancak inventoryUploadId dönmedi.")
+
+    log(f"🆔 HB stok işlem ID: {upload_id}")
+
+    status_url = f"{HB_LISTING_BASE}/listings/merchantid/{HB_MERCHANT_ID}/inventory-uploads/id/{upload_id}"
+    for attempt in range(1, 21):
+        time.sleep(3)
+        status_response = requests.get(
+            status_url,
+            headers={
+                "User-Agent": HB_USERNAME,
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+            },
+            auth=(HB_USERNAME, HB_SECRET_KEY),
+            timeout=TIMEOUT,
+        )
+        log(f"🔎 HB stok işlem kontrolü {attempt}/20 | HTTP {status_response.status_code}")
+        if status_response.status_code != 200:
+            raise RuntimeError(f"HB stok işlem sorgusu başarısız: HTTP {status_response.status_code}: {status_response.text[:3000]}")
+
+        status_data = json_or_fail(status_response, "HB stok işlem sorgusu")
+        check = status_data.get("data") if isinstance(status_data, dict) else None
+        if not isinstance(check, dict):
+            check = status_data if isinstance(status_data, dict) else {}
+        status = safe(check.get("status") or check.get("state")).upper()
+        log(f"📌 HB stok işlem durumu: {status or 'BİLİNMİYOR'}")
+
+        if status in {"SUCCESS", "SUCCEEDED", "COMPLETED", "DONE", "FINISHED"}:
+            log("✅ HB stok güncellemesi tamamlandı.")
+            return
+        if status in {"FAILED", "FAIL", "ERROR"}:
+            raise RuntimeError("HB stok işlemi başarısız: " + json.dumps(status_data, ensure_ascii=False)[:10000])
+
+    raise RuntimeError("HB stok işlemi 60 saniye içinde tamamlanmadı.")
+
+
 def main():
     print("=" * 70)
     print("TRENDYOL -> HEPSİBURADA GITHUB ACTIONS SENKRONİZASYONU")
@@ -455,7 +660,10 @@ def main():
 
     upload_products(hb_products)
 
-    log("✅ SENKRONİZASYON TAMAMLANDI.")
+    # Ürün importundan ayrı olarak mevcut HB listing stoklarını güncelle.
+    sync_stocks(products)
+
+    log("✅ ÜRÜN + STOK SENKRONİZASYONU TAMAMLANDI.")
 
 
 if __name__ == "__main__":
