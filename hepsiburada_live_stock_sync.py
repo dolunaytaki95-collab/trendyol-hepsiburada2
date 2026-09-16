@@ -73,6 +73,10 @@ def sku_key(value):
     return re.sub(r"\s+", "", safe(value)).upper()
 
 
+def barcode_key(value):
+    return re.sub(r"\D+", "", safe(value))
+
+
 def json_or_fail(response, label):
     try:
         return response.json()
@@ -220,7 +224,7 @@ def extract_listing_fields(obj):
                         fields["merchantSku"] = safe(raw_value)
 
                     if not fields["hbSku"] and key in {
-                        "hbsku", "hepsiburdasku", "hepsiburada_sku"
+                        "hbsku", "hepsiburdasku", "hepsiburadasku", "hepsiburada_sku"
                     }:
                         fields["hbSku"] = safe(raw_value)
 
@@ -332,7 +336,7 @@ def build_indexes(listings):
 
         merchant_sku = sku_key(fields["merchantSku"])
         hb_sku = sku_key(fields["hbSku"])
-        barcode = sku_key(fields["barcode"])
+        barcode = barcode_key(fields["barcode"])
         name = norm(fields["name"])
 
         row = {
@@ -355,24 +359,26 @@ def build_indexes(listings):
 def find_match(product, indexes):
     by_merchant_sku, by_hb_sku, by_barcode, by_name = indexes
 
-    for candidate in (
-        product["stockCode"],
-        product["productCode"],
-        product["barcode"],
+    # 1) Satıcı stok/ürün kodları
+    for candidate, method in (
+        (product["stockCode"], "merchantSku"),
+        (product["productCode"], "productCode"),
     ):
         key = sku_key(candidate)
         if not key:
             continue
 
         if key in by_merchant_sku:
-            return by_merchant_sku[key], "merchantSku"
-
+            return by_merchant_sku[key], method
         if key in by_hb_sku:
             return by_hb_sku[key], "hbSku"
 
-        if key in by_barcode:
-            return by_barcode[key], "barcode"
+    # 2) Barkod: yalnızca barkod index'inde ara
+    barcode = barcode_key(product["barcode"])
+    if barcode and barcode in by_barcode:
+        return by_barcode[barcode], "barcode"
 
+    # 3) Son güvenli fallback: normalize edilmiş ürün adı
     exact_name = norm(product["title"])
     if exact_name and exact_name in by_name:
         return by_name[exact_name], "name"
