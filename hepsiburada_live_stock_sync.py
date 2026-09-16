@@ -209,41 +209,92 @@ def extract_listing_fields(obj):
         "hbSku": "",
         "barcode": "",
         "name": "",
+        "price": None,
         "availableStock": None,
     }
+
+    def parse_price(value):
+        if value is None or value == "":
+            return None
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            return float(value)
+
+        if isinstance(value, str):
+            text = value.strip().replace("₺", "").replace("TL", "").strip()
+
+            # Türkçe / Avrupa fiyat biçimleri:
+            # 1.234,56 -> 1234.56
+            # 1234,56 -> 1234.56
+            if "," in text and "." in text:
+                text = text.replace(".", "").replace(",", ".")
+            else:
+                text = text.replace(",", ".")
+
+            try:
+                return float(text)
+            except ValueError:
+                return None
+
+        return None
 
     def walk(value):
         if isinstance(value, dict):
             for raw_key, raw_value in value.items():
                 key = safe(raw_key).replace("-", "_").lower()
 
-                if isinstance(raw_value, (str, int, float)) and raw_value not in ("", None):
-                    if not fields["merchantSku"] and key in {
-                        "merchantsku", "merchant_sku", "seller_sku", "sellersku"
-                    }:
-                        fields["merchantSku"] = safe(raw_value)
+                if not fields["merchantSku"] and key in {
+                    "merchantsku", "merchant_sku", "seller_sku", "sellersku"
+                } and isinstance(raw_value, (str, int, float)):
+                    fields["merchantSku"] = safe(raw_value)
 
-                    if not fields["hbSku"] and key in {
-                        "hbsku", "hepsiburdasku", "hepsiburadasku", "hepsiburada_sku"
-                    }:
-                        fields["hbSku"] = safe(raw_value)
+                if not fields["hbSku"] and key in {
+                    "hbsku",
+                    "hepsiburdasku",
+                    "hepsiburadasku",
+                    "hepsiburada_sku",
+                } and isinstance(raw_value, (str, int, float)):
+                    fields["hbSku"] = safe(raw_value)
 
-                    if not fields["barcode"] and key in {
-                        "barcode", "ean", "ean13", "gtin"
-                    }:
-                        fields["barcode"] = safe(raw_value)
+                if not fields["barcode"] and key in {
+                    "barcode", "ean", "ean13", "gtin"
+                } and isinstance(raw_value, (str, int, float)):
+                    fields["barcode"] = safe(raw_value)
 
-                    if not fields["name"] and key in {
-                        "productname", "product_name", "producttitle",
-                        "name", "title"
-                    }:
-                        fields["name"] = safe(raw_value)
+                if not fields["name"] and key in {
+                    "productname", "product_name", "producttitle",
+                    "name", "title"
+                } and isinstance(raw_value, (str, int, float)):
+                    fields["name"] = safe(raw_value)
 
-                    if fields["availableStock"] is None and key in {
-                        "availablestock", "available_stock",
-                        "stock", "stockquantity"
-                    }:
-                        fields["availableStock"] = raw_value
+                if fields["price"] is None and key in {
+                    "price",
+                    "saleprice",
+                    "sale_price",
+                    "sellingprice",
+                    "selling_price",
+                    "listingprice",
+                    "listing_price",
+                    "unitprice",
+                    "unit_price",
+                }:
+                    price_value = raw_value
+
+                    if isinstance(raw_value, dict):
+                        price_value = (
+                            raw_value.get("amount")
+                            or raw_value.get("value")
+                            or raw_value.get("price")
+                        )
+
+                    parsed_price = parse_price(price_value)
+                    if parsed_price is not None:
+                        fields["price"] = parsed_price
+
+                if fields["availableStock"] is None and key in {
+                    "availablestock", "available_stock",
+                    "stock", "stockquantity"
+                } and isinstance(raw_value, (str, int, float)):
+                    fields["availableStock"] = raw_value
 
                 walk(raw_value)
 
@@ -253,7 +304,6 @@ def extract_listing_fields(obj):
 
     walk(obj)
     return fields
-
 
 def parse_listing_items(data):
     if isinstance(data, list):
@@ -396,13 +446,55 @@ def upload_stock(updates):
         f"{HB_MERCHANT_ID}/inventory-uploads"
     )
 
-    payload = [
-        {
-            "hepsiburadaSku": item["hepsiburadaSku"],
-            "availableStock": item["availableStock"],
-        }
-        for item in updates
-    ]
+    payload = []
+    skipped = 0
+
+    for item in updates:
+        merchant_sku = safe(item.get("merchantSku"))
+
+        try:
+            price = float(item.get("price"))
+        except (TypeError, ValueError):
+            price = None
+
+        if not merchant_sku or price is None or price <= 0:
+            skipped += 1
+            log(
+                f"⚠️ Stok/fiyat güncellemesi atlandı | "
+                f"HB={item.get('hepsiburadaSku')} | "
+                f"MerchantSku={merchant_sku or 'YOK'} | "
+                f"Price={price if price is not None else 'YOK'}"
+            )
+            continue
+
+        payload.append(
+            {
+                "hepsiburadaSku": item["hepsiburadaSku"],
+                "merchantSku": merchant_sku,
+                "price": round(price, 2),
+                "availableStock": int(item["availableStock"]),
+            }
+        )
+
+    if not payload:
+        raise RuntimeError(
+            "Geçerli stok/fiyat kaydı kalmadı. "
+            "MerchantSku ve Price alanlarını kontrol edin."
+        )
+
+    log(
+        f"📦 HB stok/fiyat yükleme hazırlanıyor | "
+        f"{len(payload)} SKU | atlanan={skipped}"
+    )
+
+    for item in payload:
+        log(
+            f"➡️ HB GÖNDERİM | "
+            f"HB={item['hepsiburadaSku']} | "
+            f"MerchantSku={item['merchantSku']} | "
+            f"Price={item['price']:.2f} | "
+            f"Stock={item['availableStock']}"
+        )
 
     response = hb_request(
         "POST",
@@ -411,17 +503,18 @@ def upload_stock(updates):
     )
 
     log(
-        f"📡 HB stok yükleme | HTTP {response.status_code} | "
+        f"📡 HB stok/fiyat yükleme | HTTP {response.status_code} | "
         f"{len(payload)} SKU"
     )
     print(response.text[:10000], flush=True)
 
     if response.status_code not in (200, 201, 202):
         raise RuntimeError(
-            f"HB stok yükleme başarısız: HTTP {response.status_code}"
+            f"HB stok/fiyat yükleme başarısız: "
+            f"HTTP {response.status_code} | {response.text[:3000]}"
         )
 
-    data = json_or_fail(response, "HB stok yükleme")
+    data = json_or_fail(response, "HB stok/fiyat yükleme")
 
     upload_id = ""
     if isinstance(data, dict):
@@ -442,10 +535,10 @@ def upload_stock(updates):
 
     if not upload_id:
         raise RuntimeError(
-            "HB stok yüklemesi kabul edildi ancak inventoryUploadId dönmedi."
+            "HB stok/fiyat yüklemesi kabul edildi ancak inventoryUploadId dönmedi."
         )
 
-    log(f"🆔 HB stok işlem ID: {upload_id}")
+    log(f"🆔 HB stok/fiyat işlem ID: {upload_id}")
 
     status_url = (
         f"{HB_LISTING_BASE}/listings/merchantid/"
@@ -458,44 +551,49 @@ def upload_stock(updates):
         response = hb_request("GET", status_url)
 
         log(
-            f"🔎 HB stok işlem kontrolü {attempt}/20 | "
+            f"🔎 HB stok/fiyat işlem kontrolü {attempt}/20 | "
             f"HTTP {response.status_code}"
         )
 
         if response.status_code != 200:
             raise RuntimeError(
-                f"HB stok işlem sorgusu başarısız: "
-                f"HTTP {response.status_code}"
+                f"HB stok/fiyat işlem sorgusu başarısız: "
+                f"HTTP {response.status_code} | {response.text[:3000]}"
             )
 
-        data = json_or_fail(response, "HB stok işlem sorgusu")
-        payload = (
+        data = json_or_fail(response, "HB stok/fiyat işlem sorgusu")
+        status_payload = (
             data.get("data")
             if isinstance(data, dict) and isinstance(data.get("data"), dict)
             else data
         )
 
         status = ""
-        if isinstance(payload, dict):
+        if isinstance(status_payload, dict):
             status = safe(
-                payload.get("status") or payload.get("state")
+                status_payload.get("status")
+                or status_payload.get("state")
             ).upper()
 
-        log(f"📌 HB stok işlem durumu: {status or 'BİLİNMİYOR'}")
+        log(
+            f"📌 HB stok/fiyat işlem durumu: "
+            f"{status or 'BİLİNMİYOR'}"
+        )
 
         if status in {
             "SUCCESS", "SUCCEEDED", "COMPLETED", "DONE", "FINISHED"
         }:
-            log("✅ HB stok güncellemesi TAMAMLANDI.")
+            log("✅ HB stok/fiyat güncellemesi TAMAMLANDI.")
             return
 
         if status in {"FAILED", "FAIL", "ERROR"}:
             raise RuntimeError(
-                "HB stok işlemi başarısız: "
+                "HB stok/fiyat işlemi başarısız: "
                 + json.dumps(data, ensure_ascii=False)[:10000]
             )
 
-    raise RuntimeError("HB stok işlemi 60 saniyede tamamlanmadı.")
+    raise RuntimeError("HB stok/fiyat işlemi 60 saniyede tamamlanmadı.")
+
 
 
 def main():
@@ -557,9 +655,24 @@ def main():
             unchanged += 1
             continue
 
+        merchant_sku = safe(fields["merchantSku"])
+        price = fields.get("price")
+
+        if not merchant_sku or price is None or float(price) <= 0:
+            missing += 1
+            log(
+                f"⚠️ HB listing bulundu fakat MerchantSku/Price eksik | "
+                f"{product['title']} | HB={hb_sku} | "
+                f"MerchantSku={merchant_sku or 'YOK'} | "
+                f"Price={price if price is not None else 'YOK'}"
+            )
+            continue
+
         updates.append(
             {
                 "hepsiburadaSku": hb_sku,
+                "merchantSku": merchant_sku,
+                "price": float(price),
                 "availableStock": target_stock,
             }
         )
@@ -568,6 +681,8 @@ def main():
             f"🔄 STOK DEĞİŞİMİ | "
             f"{product['title']} | "
             f"HB={hb_sku} | "
+            f"MerchantSku={merchant_sku} | "
+            f"Price={float(price):.2f} | "
             f"{current_stock} -> {target_stock} | "
             f"eşleşme={method}"
         )
