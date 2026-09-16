@@ -37,7 +37,7 @@ jobs:
           HB_SECRET_KEY: ${{ secrets.HB_SECRET_KEY }}
           HB_USERNAME: ${{ secrets.HB_USERNAME }}
           HB_USER_AGENT: dolunaytaki_dev
-          HB_BASE_URL: https://mpop-sit.hepsiburada.com
-          HB_LISTING_BASE_URL: https://listing-external-sit.hepsiburada.com
+          HB_BASE_URL: https://mpop.hepsiburada.com
+          HB_LISTING_BASE_URL: https://listing-external.hepsiburada.com
           HB_TEST_UPLOAD_COUNT: "3"
         run: python sync.py
