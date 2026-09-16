@@ -222,7 +222,7 @@ def extract_listing_fields(obj):
                         fields["merchantSku"] = safe(raw_value)
 
                     if not fields["hbSku"] and key in {
-                        "hbsku", "hepsiburdasku", "hepsiburada_sku"
+                        "hbsku", "hepsiburdasku", "hepsiburadasku", "hepsiburada_sku"
                     }:
                         fields["hbSku"] = safe(raw_value)
 
@@ -494,6 +494,27 @@ def upload_stock(updates):
     raise RuntimeError("HB stok işlemi 60 saniyede tamamlanmadı.")
 
 
+
+def build_test_updates(listings, count):
+    updates = []
+    for item in listings:
+        fields = extract_listing_fields(item)
+        hb_sku = safe(fields.get("hbSku"))
+        if not hb_sku:
+            continue
+        current = fields.get("availableStock")
+        try:
+            current_stock = int(float(current))
+        except (TypeError, ValueError):
+            current_stock = 0
+        updates.append({
+            "hepsiburadaSku": hb_sku,
+            "availableStock": max(1, current_stock + 1),
+        })
+        if len(updates) >= count:
+            break
+    return updates
+
 def main():
     print("=" * 72)
     print("DOLUNAY TAKI — TRENDYOL -> HEPSİBURADA STOK SENKRONİZASYONU")
@@ -501,6 +522,24 @@ def main():
 
     products = get_trendyol_products()
     listings = get_all_hb_listings()
+
+    test_count = int(os.getenv("HB_TEST_UPLOAD_COUNT", "0") or "0")
+    if test_count > 0:
+        log(f"🧪 TEST STOK GÖNDERİMİ: İlk {test_count} test listing seçilecek.")
+        test_updates = build_test_updates(listings, test_count)
+        if len(test_updates) < test_count:
+            raise RuntimeError(
+                f"Test stok gönderimi için yeterli HB SKU bulunamadı: "
+                f"{len(test_updates)}/{test_count}"
+            )
+        for item in test_updates:
+            log(
+                f"🧪 TEST STOK | HB={item['hepsiburadaSku']} | "
+                f"gönderilecek={item['availableStock']}"
+            )
+        upload_stock(test_updates)
+        log("✅ TEST STOK GÖNDERİMİ TAMAMLANDI.")
+        return
 
     indexes = build_indexes(listings)
 
