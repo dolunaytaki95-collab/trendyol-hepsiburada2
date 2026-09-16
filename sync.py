@@ -36,13 +36,6 @@ TY_API_SECRET = required("TY_API_SECRET")
 HB_MERCHANT_ID = required("HB_MERCHANT_ID")
 HB_SECRET_KEY = required("HB_SECRET_KEY")
 
-# IMPORTANT: never run this stock job against the SIT listing endpoint.
-if "-sit." in HB_LISTING_BASE.lower():
-    raise RuntimeError(
-        "HB_LISTING_BASE_URL test/SIT adresi. "
-        "Gerçek mağaza stoğu için canlı adres kullanılmalı: "
-        "https://listing-external.hepsiburada.com"
-    )
 
 
 def log(message):
