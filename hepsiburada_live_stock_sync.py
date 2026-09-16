@@ -84,7 +84,7 @@ def json_or_fail(response, label):
 
 def hb_request(method, url, **kwargs):
     kwargs.setdefault("headers", {})
-    kwargs["headers"].setdefault("User-Agent", f"DolunayTaki/{SUPPLIER_ID}")
+    kwargs["headers"].setdefault("User-Agent", f"dolunaytaki_dev")
     kwargs["headers"].setdefault("Accept", "application/json")
     kwargs["headers"].setdefault("Content-Type", "application/json")
     kwargs["auth"] = (HB_MERCHANT_ID, HB_SECRET_KEY)
