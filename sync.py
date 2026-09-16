@@ -207,6 +207,7 @@ def extract_listing_fields(obj):
         "hbSku": "",
         "barcode": "",
         "name": "",
+        "price": None,
         "availableStock": None,
     }
 
@@ -236,6 +237,11 @@ def extract_listing_fields(obj):
                         "name", "title"
                     }:
                         fields["name"] = safe(raw_value)
+
+                    if fields["price"] is None and key in {
+                        "price", "saleprice", "sellingprice", "listprice"
+                    }:
+                        fields["price"] = raw_value
 
                     if fields["availableStock"] is None and key in {
                         "availablestock", "available_stock",
@@ -394,11 +400,25 @@ def upload_stock(updates):
 
     payload = [
         {
-            "hepsiburadaSku": item["hepsiburadaSku"],
-            "availableStock": item["availableStock"],
+            "hepsiburadaSku": item.get("hepsiburadaSku", ""),
+            "merchantSku": item.get("merchantSku", ""),
+            "price": item.get("price"),
+            "availableStock": item.get("availableStock", 0),
         }
         for item in updates
     ]
+
+    missing_fields = []
+    for index, item in enumerate(payload, start=1):
+        if not item.get("merchantSku"):
+            missing_fields.append(f"#{index}:MerchantSku")
+        if item.get("price") in (None, ""):
+            missing_fields.append(f"#{index}:Price")
+    if missing_fields:
+        raise RuntimeError(
+            "HB stok yükleme için zorunlu alanlar eksik: "
+            + ", ".join(missing_fields)
+        )
 
     response = hb_request(
         "POST",
@@ -507,8 +527,20 @@ def build_test_updates(listings, count):
             current_stock = int(float(current))
         except (TypeError, ValueError):
             current_stock = 0
+        merchant_sku = safe(fields.get("merchantSku"))
+        price = fields.get("price")
+        if not merchant_sku or price in (None, ""):
+            log(
+                f"⚠️ TEST STOK atlandı | HB={hb_sku} | "
+                f"merchantSku={'YOK' if not merchant_sku else 'VAR'} | "
+                f"price={'YOK' if price in (None, '') else price}"
+            )
+            continue
+
         updates.append({
             "hepsiburadaSku": hb_sku,
+            "merchantSku": merchant_sku,
+            "price": price,
             "availableStock": max(1, current_stock + 1),
         })
         if len(updates) >= count:
@@ -535,6 +567,8 @@ def main():
         for item in test_updates:
             log(
                 f"🧪 TEST STOK | HB={item['hepsiburadaSku']} | "
+                f"MerchantSku={item['merchantSku']} | "
+                f"Price={item['price']} | "
                 f"gönderilecek={item['availableStock']}"
             )
         upload_stock(test_updates)
@@ -592,9 +626,20 @@ def main():
             unchanged += 1
             continue
 
+        merchant_sku = safe(fields.get("merchantSku"))
+        price = fields.get("price")
+        if not merchant_sku or price in (None, ""):
+            log(
+                f"⚠️ HB stok güncellemesi atlandı | {product['title']} | "
+                f"MerchantSku/Price eksik"
+            )
+            continue
+
         updates.append(
             {
                 "hepsiburadaSku": hb_sku,
+                "merchantSku": merchant_sku,
+                "price": price,
                 "availableStock": target_stock,
             }
         )
