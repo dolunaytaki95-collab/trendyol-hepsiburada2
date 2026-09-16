@@ -35,7 +35,7 @@ jobs:
           TY_API_SECRET: ${{ secrets.TY_API_SECRET }}
           HB_MERCHANT_ID: ${{ secrets.HB_MERCHANT_ID }}
           HB_SECRET_KEY: ${{ secrets.HB_SECRET_KEY }}
-          HB_USERNAME: ${{ secrets.HB_USERNAME }}
+          HB_USER_AGENT: dolunaytaki_dev
           HB_BASE_URL: https://mpop-sit.hepsiburada.com
           HB_LISTING_BASE_URL: https://listing-external-sit.hepsiburada.com
         run: python sync.py
