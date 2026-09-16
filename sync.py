@@ -184,12 +184,31 @@ def get_trendyol_products():
                 )
                 title = safe(product.get("title"))
 
+                price = None
+                for price_key in ("salePrice", "sellingPrice", "price", "listPrice"):
+                    candidate = variant.get(price_key)
+                    if candidate not in (None, ""):
+                        price = candidate
+                        break
+                if price in (None, ""):
+                    for price_key in ("salePrice", "sellingPrice", "price", "listPrice"):
+                        candidate = product.get(price_key)
+                        if candidate not in (None, ""):
+                            price = candidate
+                            break
+
+                try:
+                    price = float(price) if price not in (None, "") else None
+                except (TypeError, ValueError):
+                    price = None
+
                 products.append({
                     "stock": stock,
                     "stockCode": stock_code,
                     "productCode": product_code,
                     "barcode": barcode,
                     "title": title,
+                    "price": price,
                 })
 
         if len(content) < 100:
@@ -528,19 +547,22 @@ def build_test_updates(listings, count):
         except (TypeError, ValueError):
             current_stock = 0
         merchant_sku = safe(fields.get("merchantSku"))
-        price = fields.get("price")
-        if not merchant_sku or price in (None, ""):
+        test_price_raw = os.getenv("HB_TEST_PRICE", "100.00").strip()
+        try:
+            test_price = float(test_price_raw)
+        except (TypeError, ValueError):
+            raise RuntimeError(f"HB_TEST_PRICE geçersiz: {test_price_raw!r}")
+
+        if not merchant_sku:
             log(
-                f"⚠️ TEST STOK atlandı | HB={hb_sku} | "
-                f"merchantSku={'YOK' if not merchant_sku else 'VAR'} | "
-                f"price={'YOK' if price in (None, '') else price}"
+                f"⚠️ TEST STOK atlandı | HB={hb_sku} | merchantSku=YOK"
             )
             continue
 
         updates.append({
             "hepsiburadaSku": hb_sku,
             "merchantSku": merchant_sku,
-            "price": price,
+            "price": test_price,
             "availableStock": max(1, current_stock + 1),
         })
         if len(updates) >= count:
@@ -627,7 +649,9 @@ def main():
             continue
 
         merchant_sku = safe(fields.get("merchantSku"))
-        price = fields.get("price")
+        price = product.get("price")
+        if price in (None, ""):
+            price = fields.get("price")
         if not merchant_sku or price in (None, ""):
             log(
                 f"⚠️ HB stok güncellemesi atlandı | {product['title']} | "
