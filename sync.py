@@ -35,7 +35,9 @@ TY_API_KEY = required("TY_API_KEY")
 TY_API_SECRET = required("TY_API_SECRET")
 HB_MERCHANT_ID = required("HB_MERCHANT_ID")
 HB_SECRET_KEY = required("HB_SECRET_KEY")
-
+HB_USER_AGENT = os.getenv("HB_USER_AGENT", "dolunaytaki_dev").strip()
+if not HB_USER_AGENT:
+    raise RuntimeError("GitHub Secret/Variable eksik: HB_USER_AGENT")
 
 
 def log(message):
@@ -77,7 +79,7 @@ def json_or_fail(response, label):
 
 def hb_request(method, url, **kwargs):
     kwargs.setdefault("headers", {})
-    kwargs["headers"].setdefault("User-Agent", f"DolunayTaki/{SUPPLIER_ID}")
+    kwargs["headers"].setdefault("User-Agent", HB_USER_AGENT)
     kwargs["headers"].setdefault("Accept", "application/json")
     kwargs["headers"].setdefault("Content-Type", "application/json")
     kwargs["auth"] = (HB_MERCHANT_ID, HB_SECRET_KEY)
@@ -90,6 +92,13 @@ def hb_request(method, url, **kwargs):
         last_response = response
 
         if response.status_code not in (429, 500, 502, 503, 504):
+            if response.status_code in (401, 403):
+                body = response.text[:3000].replace("\n", " ")
+                raise RuntimeError(
+                    f"HB API yetkilendirme hatası: HTTP {response.status_code} | "
+                    f"URL={url} | User-Agent={HB_USER_AGENT} | "
+                    f"Cevap={body}"
+                )
             return response
 
         wait = min(2 ** attempt, 30)
@@ -487,7 +496,7 @@ def upload_stock(updates):
 
 def main():
     print("=" * 72)
-    print("DOLUNAY TAKI — TRENDYOL -> HEPSİBURADA CANLI STOK SENKRONİZASYONU")
+    print("DOLUNAY TAKI — TRENDYOL -> HEPSİBURADA STOK SENKRONİZASYONU")
     print("=" * 72)
 
     products = get_trendyol_products()
