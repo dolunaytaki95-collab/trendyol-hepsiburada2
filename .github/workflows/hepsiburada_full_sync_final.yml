@@ -43,7 +43,7 @@ jobs:
           MISSING_RUN_THRESHOLD: "2"
           SYNC_STATE_FILE: sync_state.json
           HB_CATEGORY_CACHE: hb_category_cache.json
-        run: python hepsiburada_full_sync_final.py
+        koşmak: python hepsiburada_full_sync_son_guvenli.py
 
       - name: Durum dosyasını kaydet
         run: |
