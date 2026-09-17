@@ -2,15 +2,9 @@ name: Trendyol Hepsiburada TAM Senkronizasyon
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "*/5 * * * *"
 
 permissions:
   contents: write
-
-concurrency:
-  group: trendyol-hepsiburada-tam-sync
-  cancel-in-progress: false
 
 jobs:
   sync:
@@ -35,21 +29,36 @@ jobs:
           TY_SUPPLIER_ID: ${{ secrets.TY_SUPPLIER_ID }}
           TY_API_KEY: ${{ secrets.TY_API_KEY }}
           TY_API_SECRET: ${{ secrets.TY_API_SECRET }}
+
           HB_MERCHANT_ID: ${{ secrets.HB_MERCHANT_ID }}
           HB_SECRET_KEY: ${{ secrets.HB_SECRET_KEY }}
+
           HB_LISTING_BASE_URL: https://listing-external.hepsiburada.com
           HB_CATALOG_BASE_URL: https://mpop.hepsiburada.com
+
           NEW_PRODUCT_SYNC: "true"
           MISSING_RUN_THRESHOLD: "2"
+
           SYNC_STATE_FILE: sync_state.json
           HB_CATEGORY_CACHE: hb_category_cache.json
-        koşmak: python hepsiburada_full_sync_son_guvenli.py
+
+        run: python hepsiburada_full_sync_son_guvenli.py
 
       - name: Durum dosyasını kaydet
+        if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add sync_state.json hb_category_cache.json
+
+          if [ -f sync_state.json ]; then
+            git add sync_state.json
+          fi
+
+          if [ -f hb_category_cache.json ]; then
+            git add hb_category_cache.json
+          fi
+
           git diff --cached --quiet && exit 0
+
           git commit -m "Senkronizasyon durumunu güncelle"
           git push
