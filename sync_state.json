@@ -3,7 +3,7 @@
     "86990000000000022": {
       "barcode": "86990000000000022",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.030251",
+      "lastSeen": "2026-09-19T07:49:29.849029",
       "missingRuns": 0,
       "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
       "productCode": "",
@@ -13,9 +13,12 @@
     "8699000000000011": {
       "barcode": "8699000000000011",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.030296",
+      "lastSeen": "2026-09-19T07:49:29.849137",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "XUPING Gold Renk Sonsuzluk Desenli Zirkon Taşlı Çelik Bileklik"
@@ -23,7 +26,7 @@
     "8699000000000022": {
       "barcode": "8699000000000022",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.030776",
+      "lastSeen": "2026-09-19T07:49:29.850241",
       "missingRuns": 0,
       "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
       "productCode": "",
@@ -33,9 +36,12 @@
     "8699000000000024": {
       "barcode": "8699000000000024",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.030737",
+      "lastSeen": "2026-09-19T07:49:29.850155",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "Çoklu İtalyan Modeli Gold kolye"
@@ -43,7 +49,7 @@
     "8699000000000025": {
       "barcode": "8699000000000025",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.030720",
+      "lastSeen": "2026-09-19T07:49:29.850115",
       "missingRuns": 0,
       "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
       "productCode": "",
@@ -53,7 +59,7 @@
     "8699000000000057": {
       "barcode": "8699000000000057",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.029484",
+      "lastSeen": "2026-09-19T07:49:29.847282",
       "missingRuns": 0,
       "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
       "productCode": "",
@@ -63,9 +69,12 @@
     "8699000000000100": {
       "barcode": "8699000000000100",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.030697",
+      "lastSeen": "2026-09-19T07:49:29.850066",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "Damla Taşlı Gold Kolye"
@@ -73,9 +82,12 @@
     "86990000000001001": {
       "barcode": "86990000000001001",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.029405",
+      "lastSeen": "2026-09-19T07:49:29.847087",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "Dolunay Takı Ayarlanabilir Çiçek Tasarımlı Zirkon Yüzük"
@@ -83,9 +95,12 @@
     "86990000000001002": {
       "barcode": "86990000000001002",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.029959",
+      "lastSeen": "2026-09-19T07:49:29.848362",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "Dolunay Takı Modern Desenli Çelik Erkek Bileklik"
@@ -93,9 +108,12 @@
     "86990000000001003": {
       "barcode": "86990000000001003",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.029939",
+      "lastSeen": "2026-09-19T07:49:29.848279",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "Dolunay Takı Ayarlanabilir Premium Kadın Çelik Yüzük"
@@ -103,7 +121,7 @@
     "86990000000001004": {
       "barcode": "86990000000001004",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.029918",
+      "lastSeen": "2026-09-19T07:49:29.848229",
       "missingRuns": 0,
       "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
       "productCode": "",
@@ -113,9 +131,12 @@
     "86990000000001005": {
       "barcode": "86990000000001005",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.029897",
+      "lastSeen": "2026-09-19T07:49:29.848180",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "Dolunay Takı Zarif Kırmızı Damla Taşlı Zümrüt Kolye ( Çelik)"
@@ -123,9 +144,12 @@
     "86990000000001007": {
       "barcode": "86990000000001007",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.029873",
+      "lastSeen": "2026-09-19T07:49:29.848126",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "Dolunay Takı İnci Detaylı Deniz Yıldızı Çelik Kolye Gold"
@@ -133,9 +157,12 @@
     "86990000000001008": {
       "barcode": "86990000000001008",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.029850",
+      "lastSeen": "2026-09-19T07:49:29.848073",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "Dolunay Takı Burgulu Zincir Kolye Çelik"
@@ -143,9 +170,12 @@
     "86990000000001010": {
       "barcode": "86990000000001010",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.029423",
+      "lastSeen": "2026-09-19T07:49:29.847137",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "Dolunay Takı Vintage Kadın çelik Kelepçe"
@@ -153,9 +183,12 @@
     "8699000000000101031": {
       "barcode": "8699000000000101031",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.029344",
+      "lastSeen": "2026-09-19T07:49:29.846941",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "Yeşil Zümrüt Küpe Çelik"
@@ -163,9 +196,12 @@
     "86990000000001010312": {
       "barcode": "86990000000001010312",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.029290",
+      "lastSeen": "2026-09-19T07:49:29.846820",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "Dolunay Takı Şık Çelik 2 Renk Erkek Kolye"
@@ -173,9 +209,12 @@
     "8699000000000101055": {
       "barcode": "8699000000000101055",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.029189",
+      "lastSeen": "2026-09-19T07:49:29.846599",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "Dolunay Takı Vintage Kelepçe Bileklik"
@@ -183,9 +222,12 @@
     "86990000000001010551": {
       "barcode": "86990000000001010551",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.029270",
+      "lastSeen": "2026-09-19T07:49:29.846773",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "Yarım Halka Taşlı Gold Çelik Küpe"
@@ -193,9 +235,12 @@
     "86990000000001010558699000000000101068": {
       "barcode": "86990000000001010558699000000000101068",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.029210",
+      "lastSeen": "2026-09-19T07:49:29.846642",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "Çift renk detayli erkek kolye"
@@ -203,9 +248,12 @@
     "8699000000000101056": {
       "barcode": "8699000000000101056",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.029159",
+      "lastSeen": "2026-09-19T07:49:29.846545",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "Dolunay Takı Vintage Kelepçe Bileklik"
@@ -213,7 +261,7 @@
     "8699000000000101057": {
       "barcode": "8699000000000101057",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.029310",
+      "lastSeen": "2026-09-19T07:49:29.846866",
       "missingRuns": 0,
       "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
       "productCode": "",
@@ -223,9 +271,12 @@
     "8699000000000101088": {
       "barcode": "8699000000000101088",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.029329",
+      "lastSeen": "2026-09-19T07:49:29.846908",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "Sakura Sallantılı Beyaz Çiçekli Çelik Kolye"
@@ -233,7 +284,7 @@
     "86990000000001010882": {
       "barcode": "86990000000001010882",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.029252",
+      "lastSeen": "2026-09-19T07:49:29.846731",
       "missingRuns": 0,
       "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
       "productCode": "",
@@ -243,9 +294,12 @@
     "86990000000001011": {
       "barcode": "86990000000001011",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.029829",
+      "lastSeen": "2026-09-19T07:49:29.848029",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "Dolunay Takı Kristal Çiçek Bileklik Dönen Kristal"
@@ -253,7 +307,7 @@
     "86990000000001012": {
       "barcode": "86990000000001012",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.029785",
+      "lastSeen": "2026-09-19T07:49:29.847980",
       "missingRuns": 0,
       "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
       "productCode": "",
@@ -263,7 +317,7 @@
     "86990000000001013": {
       "barcode": "86990000000001013",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.029767",
+      "lastSeen": "2026-09-19T07:49:29.847936",
       "missingRuns": 0,
       "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
       "productCode": "",
@@ -273,7 +327,7 @@
     "86990000000001014": {
       "barcode": "86990000000001014",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.029746",
+      "lastSeen": "2026-09-19T07:49:29.847884",
       "missingFields": [
         "merchantSku, barcode veya price"
       ],
@@ -286,9 +340,12 @@
     "86990000000001015": {
       "barcode": "86990000000001015",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.029539",
+      "lastSeen": "2026-09-19T07:49:29.847439",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "Dolunay Takı Yonca Desenli Silver Çelik Kelepçe"
@@ -296,9 +353,12 @@
     "86990000000001017": {
       "barcode": "86990000000001017",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.029725",
+      "lastSeen": "2026-09-19T07:49:29.847838",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "Dolunay Takı Zarif Kuğu Kolye"
@@ -306,9 +366,12 @@
     "86990000000001018": {
       "barcode": "86990000000001018",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.029707",
+      "lastSeen": "2026-09-19T07:49:29.847803",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "Dolunay Takı Siyah Gümüş Zincir Kolye"
@@ -316,7 +379,7 @@
     "86990000000001019": {
       "barcode": "86990000000001019",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.029690",
+      "lastSeen": "2026-09-19T07:49:29.847764",
       "missingRuns": 0,
       "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
       "productCode": "",
@@ -326,9 +389,12 @@
     "86990000000001020": {
       "barcode": "86990000000001020",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.029670",
+      "lastSeen": "2026-09-19T07:49:29.847721",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "Dolunay Takı 316L Çelik Erkek Bileklik"
@@ -336,9 +402,12 @@
     "86990000000001021": {
       "barcode": "86990000000001021",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.029519",
+      "lastSeen": "2026-09-19T07:49:29.847396",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "Dolunay Takı Vintage Kelepçe Bileklik"
@@ -346,9 +415,12 @@
     "86990000000001022": {
       "barcode": "86990000000001022",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.029651",
+      "lastSeen": "2026-09-19T07:49:29.847680",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "Dolunay Takı Deniz Yıldızı Yüzük"
@@ -356,9 +428,12 @@
     "86990000000001023": {
       "barcode": "86990000000001023",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.029501",
+      "lastSeen": "2026-09-19T07:49:29.847354",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "Dolunay Takı Şans Yoncası Kelepçe"
@@ -366,7 +441,7 @@
     "86990000000001025": {
       "barcode": "86990000000001025",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.029635",
+      "lastSeen": "2026-09-19T07:49:29.847640",
       "missingRuns": 0,
       "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
       "productCode": "",
@@ -376,7 +451,7 @@
     "86990000000001036": {
       "barcode": "86990000000001036",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.029363",
+      "lastSeen": "2026-09-19T07:49:29.846983",
       "missingRuns": 0,
       "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
       "productCode": "",
@@ -386,9 +461,12 @@
     "86990000000001097": {
       "barcode": "86990000000001097",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.029976",
+      "lastSeen": "2026-09-19T07:49:29.848403",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "Dolunay Takı Şık Pembe Kelebek Kolye"
@@ -396,9 +474,12 @@
     "869900000000012": {
       "barcode": "869900000000012",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.031046",
+      "lastSeen": "2026-09-19T07:49:29.850535",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "7 Element taşlı ve parlak çelik Kolye Gold"
@@ -406,9 +487,12 @@
     "869900000000018": {
       "barcode": "869900000000018",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.030931",
+      "lastSeen": "2026-09-19T07:49:29.850417",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "AY YILDIZ DESENLİ TAŞ DETAYLI ÇELİK KOLYE GOLD"
@@ -416,7 +500,7 @@
     "869900000000023": {
       "barcode": "869900000000023",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.029442",
+      "lastSeen": "2026-09-19T07:49:29.847185",
       "missingRuns": 0,
       "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
       "productCode": "",
@@ -426,7 +510,7 @@
     "869900000000024": {
       "barcode": "869900000000024",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.030756",
+      "lastSeen": "2026-09-19T07:49:29.850196",
       "missingRuns": 0,
       "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
       "productCode": "",
@@ -436,7 +520,7 @@
     "869900000000027": {
       "barcode": "869900000000027",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.030665",
+      "lastSeen": "2026-09-19T07:49:29.849990",
       "missingRuns": 0,
       "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
       "productCode": "",
@@ -446,9 +530,12 @@
     "869900000000031": {
       "barcode": "869900000000031",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.030645",
+      "lastSeen": "2026-09-19T07:49:29.849935",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "Şık Ve Ağır Metal Uçlu Erkek Paslanmaz Çelik Kolye"
@@ -456,7 +543,7 @@
     "869900000000032": {
       "barcode": "869900000000032",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.029460",
+      "lastSeen": "2026-09-19T07:49:29.847229",
       "missingRuns": 0,
       "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
       "productCode": "",
@@ -466,9 +553,12 @@
     "869900000000033": {
       "barcode": "869900000000033",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.030624",
+      "lastSeen": "2026-09-19T07:49:29.849887",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "Parlak Taş Desenli Kelebek Model Gold Çelik Kolye"
@@ -476,7 +566,7 @@
     "869900000000035": {
       "barcode": "869900000000035",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.030582",
+      "lastSeen": "2026-09-19T07:49:29.849799",
       "missingRuns": 0,
       "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
       "productCode": "",
@@ -486,7 +576,7 @@
     "869900000000036": {
       "barcode": "869900000000036",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.030604",
+      "lastSeen": "2026-09-19T07:49:29.849846",
       "missingRuns": 0,
       "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
       "productCode": "",
@@ -496,9 +586,12 @@
     "869900000000040": {
       "barcode": "869900000000040",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.030560",
+      "lastSeen": "2026-09-19T07:49:29.849751",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "Dolunay Takı Gold Renk Çelik Bordo Taşlı Zirkon Detaylı Kalkan Kolye"
@@ -506,7 +599,7 @@
     "869900000000041": {
       "barcode": "869900000000041",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.030536",
+      "lastSeen": "2026-09-19T07:49:29.849700",
       "missingRuns": 0,
       "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
       "productCode": "",
@@ -516,7 +609,7 @@
     "869900000000042": {
       "barcode": "869900000000042",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.030518",
+      "lastSeen": "2026-09-19T07:49:29.849662",
       "missingRuns": 0,
       "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
       "productCode": "",
@@ -526,9 +619,12 @@
     "869900000000044": {
       "barcode": "869900000000044",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.030497",
+      "lastSeen": "2026-09-19T07:49:29.849617",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "Dolunay Takı 316L Çelik Gold Burgu Zincir Erkek Bileklik"
@@ -536,9 +632,12 @@
     "869900000000045": {
       "barcode": "869900000000045",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.030475",
+      "lastSeen": "2026-09-19T07:49:29.849570",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "Dolunay Takı Parlak Taş Detaylı Baget Çelik Yüzük Gold"
@@ -546,9 +645,12 @@
     "869900000000048": {
       "barcode": "869900000000048",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.030454",
+      "lastSeen": "2026-09-19T07:49:29.849525",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "Dolunay Takı Renkli Taşlı Yaprak Deseneli Sallantılı Gold Çelik Küpe"
@@ -556,7 +658,7 @@
     "869900000000052": {
       "barcode": "869900000000052",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.030429",
+      "lastSeen": "2026-09-19T07:49:29.849473",
       "missingRuns": 0,
       "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
       "productCode": "",
@@ -566,7 +668,7 @@
     "869900000000053": {
       "barcode": "869900000000053",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.030407",
+      "lastSeen": "2026-09-19T07:49:29.849424",
       "missingRuns": 0,
       "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
       "productCode": "",
@@ -576,9 +678,12 @@
     "869900000000054": {
       "barcode": "869900000000054",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.030383",
+      "lastSeen": "2026-09-19T07:49:29.849373",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "Dolunay Takı Gold Renk Modern Tasarım Zirkon Detaylı Kadın Yüzük"
@@ -586,9 +691,12 @@
     "869900000000055": {
       "barcode": "869900000000055",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.030360",
+      "lastSeen": "2026-09-19T07:49:29.849292",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "Dolunay Takı Modern Tasarım Siyah Çelik Erkek Kolye"
@@ -596,9 +704,12 @@
     "8699000000000555": {
       "barcode": "8699000000000555",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.029590",
+      "lastSeen": "2026-09-19T07:49:29.847535",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "Dolunay Takı Infinity Gold Renk Taş İşlemeli Kadın Kelepçe Bileklik"
@@ -606,7 +717,7 @@
     "869900000000058": {
       "barcode": "869900000000058",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.030318",
+      "lastSeen": "2026-09-19T07:49:29.849191",
       "missingRuns": 0,
       "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
       "productCode": "",
@@ -616,9 +727,12 @@
     "869900000000067": {
       "barcode": "869900000000067",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.030339",
+      "lastSeen": "2026-09-19T07:49:29.849243",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "Dolunay Takı Zirkon Taşlı Sallantılı Gold Kadın Küpe"
@@ -626,9 +740,12 @@
     "869900000000068": {
       "barcode": "869900000000068",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.029614",
+      "lastSeen": "2026-09-19T07:49:29.847590",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "Dolunay Takı Clover Luxe Gold Renk Taşlı Kelepçe Bileklik"
@@ -636,9 +753,12 @@
     "869900000000070": {
       "barcode": "869900000000070",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.030272",
+      "lastSeen": "2026-09-19T07:49:29.849082",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "Dolunay Takı Zümrüt Damla Taş Detaylı Zarif Gold Kolye"
@@ -646,9 +766,12 @@
     "869900000000073": {
       "barcode": "869900000000073",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.030229",
+      "lastSeen": "2026-09-19T07:49:29.848977",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "Dolunay Takı Sakura Mine İşlemeli Çiçek Kolye"
@@ -656,9 +779,12 @@
     "869900000000080": {
       "barcode": "869900000000080",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.030187",
+      "lastSeen": "2026-09-19T07:49:29.848878",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "7 Elementli Silver Y taşlı Kolye"
@@ -666,9 +792,12 @@
     "869900000000081": {
       "barcode": "869900000000081",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.030208",
+      "lastSeen": "2026-09-19T07:49:29.848929",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "Dolunay Takı Imperium Premium Paslanmaz Çelik Bileklik"
@@ -676,7 +805,7 @@
     "869900000000083": {
       "barcode": "869900000000083",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.030170",
+      "lastSeen": "2026-09-19T07:49:29.848837",
       "missingRuns": 0,
       "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
       "productCode": "",
@@ -686,9 +815,12 @@
     "869900000000084": {
       "barcode": "869900000000084",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.030150",
+      "lastSeen": "2026-09-19T07:49:29.848790",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "Dolunay Takı Zirkon Taşlı Ay Yıldız Kolye"
@@ -696,9 +828,12 @@
     "869900000000085": {
       "barcode": "869900000000085",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.030132",
+      "lastSeen": "2026-09-19T07:49:29.848743",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "Dolunay Takı Ayarlanabilir Altın Renk Geometrik Zirkon Taşlı Yüzük"
@@ -706,7 +841,7 @@
     "869900000000086": {
       "barcode": "869900000000086",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.030072",
+      "lastSeen": "2026-09-19T07:49:29.848608",
       "missingRuns": 0,
       "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
       "productCode": "",
@@ -716,7 +851,7 @@
     "869900000000087": {
       "barcode": "869900000000087",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.030090",
+      "lastSeen": "2026-09-19T07:49:29.848644",
       "missingRuns": 0,
       "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
       "productCode": "",
@@ -726,7 +861,7 @@
     "869900000000089": {
       "barcode": "869900000000089",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.030108",
+      "lastSeen": "2026-09-19T07:49:29.848685",
       "missingRuns": 0,
       "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
       "productCode": "",
@@ -736,7 +871,7 @@
     "869900000000090": {
       "barcode": "869900000000090",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.030054",
+      "lastSeen": "2026-09-19T07:49:29.848568",
       "missingRuns": 0,
       "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
       "productCode": "",
@@ -746,9 +881,12 @@
     "869900000000091": {
       "barcode": "869900000000091",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.029557",
+      "lastSeen": "2026-09-19T07:49:29.847478",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "Dolunay Takı Zirkon Taşlı Çivi Bileklik"
@@ -756,9 +894,12 @@
     "869900000000092": {
       "barcode": "869900000000092",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.030013",
+      "lastSeen": "2026-09-19T07:49:29.848482",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "Dolunay Takı Damla Kesim Zirkon Taşlı Kolye"
@@ -766,7 +907,7 @@
     "869900000000093": {
       "barcode": "869900000000093",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.030034",
+      "lastSeen": "2026-09-19T07:49:29.848525",
       "missingRuns": 0,
       "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
       "productCode": "",
@@ -776,9 +917,12 @@
     "869900000000095": {
       "barcode": "869900000000095",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.029383",
+      "lastSeen": "2026-09-19T07:49:29.847033",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "Dolunay Takı Yaprak Desenli Ayarlanabilir Yüzük"
@@ -786,9 +930,12 @@
     "869900000000096": {
       "barcode": "869900000000096",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.029994",
+      "lastSeen": "2026-09-19T07:49:29.848442",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "Dolunay Takı 316L Çelik Erkek Kolye"
@@ -796,9 +943,12 @@
     "869900000000099": {
       "barcode": "869900000000099",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.030683",
+      "lastSeen": "2026-09-19T07:49:29.850033",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "Ortası Dönen Çiçekli Bileklik Çelik Gold"
@@ -806,9 +956,12 @@
     "86990000001088": {
       "barcode": "86990000001088",
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.029230",
+      "lastSeen": "2026-09-19T07:49:29.846682",
+      "missingFields": [
+        "merchantSku, barcode veya price"
+      ],
       "missingRuns": 0,
-      "newProductStatus": "CATEGORY_REVIEW_REQUIRED",
+      "newProductStatus": "MANDATORY_FIELDS_REQUIRED",
       "productCode": "",
       "stockCode": "",
       "title": "Zarif yonca tas detaylı çelik küpe"
@@ -818,7 +971,7 @@
       "hbSku": "HBCV0000HXQ2L6",
       "lastHbPrice": 439.99,
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.028991",
+      "lastSeen": "2026-09-19T07:49:29.846356",
       "merchantSku": "STK-DLN-00001",
       "missingRuns": 0,
       "productCode": "",
@@ -830,7 +983,7 @@
       "hbSku": "HBCV0000HXQ1FM",
       "lastHbPrice": 327.99,
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.031055",
+      "lastSeen": "2026-09-19T07:49:29.850546",
       "merchantSku": "STK-DLN-00002",
       "missingRuns": 0,
       "productCode": "",
@@ -842,7 +995,7 @@
       "hbSku": "HBCV0000HXQ0TT",
       "lastHbPrice": 525.0,
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.030942",
+      "lastSeen": "2026-09-19T07:49:29.850429",
       "merchantSku": "STK-DLN-0005",
       "missingRuns": 0,
       "productCode": "",
@@ -854,7 +1007,7 @@
       "hbSku": "HBCV0000HXPSTB",
       "lastHbPrice": 349.99,
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.030781",
+      "lastSeen": "2026-09-19T07:49:29.850253",
       "merchantSku": "STK-DLN-0008",
       "missingRuns": 0,
       "productCode": "",
@@ -866,7 +1019,7 @@
       "hbSku": "HBCV0000HXQ1NZ",
       "lastHbPrice": 299.99,
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.030851",
+      "lastSeen": "2026-09-19T07:49:29.850333",
       "merchantSku": "STK-DLN0008",
       "missingRuns": 0,
       "productCode": "",
@@ -878,7 +1031,7 @@
       "hbSku": "HBCV0000HXQ1IC",
       "lastHbPrice": 299.99,
       "lastPrice": null,
-      "lastSeen": "2026-09-19T07:45:12.030977",
+      "lastSeen": "2026-09-19T07:49:29.850464",
       "merchantSku": "STK_DLN00003",
       "missingRuns": 0,
       "productCode": "",
