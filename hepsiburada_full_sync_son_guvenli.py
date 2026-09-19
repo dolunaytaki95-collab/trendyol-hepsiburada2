@@ -419,12 +419,16 @@ def _fetch_categories_with_size(size):
     forward until an empty page when those fields are absent.
     """
     url = f"{HB_CATALOG_BASE}/product/api/categories/get-all-categories"
+    # Hepsiburada support confirmed the live category request format:
+    # /product/api/categories/get-all-categories
+    # with leaf=true, status=ACTIVE, available=true, page, size and version=1.
+    # Do not add merchantId here; use the exact endpoint/query shape supplied by HB.
     base_params = {
-        "merchantId": HB_MERCHANT_ID,
-        "size": size,
         "leaf": "true",
-        "status": "active",
+        "status": "ACTIVE",
         "available": "true",
+        "size": size,
+        "version": "1",
     }
     rows_all = []
     seen_signatures = set()
@@ -433,7 +437,7 @@ def _fetch_categories_with_size(size):
         params = dict(base_params)
         params["page"] = page
         response = hb_request("GET", url, params=params)
-        log(f"📚 HB kategori | HTTP {response.status_code} | page={page} size={size}")
+        log(f"📚 HB kategori | HTTP {response.status_code} | page={page} size={size} | status=ACTIVE | available=true | leaf=true | version=1")
 
         if response.status_code != 200:
             raise RuntimeError(
@@ -483,8 +487,8 @@ def get_categories():
     cached = _load_cached_categories()
     cache_count = len(cached)
 
-    # Prefer the live tree. Use the documented maximum first, then smaller
-    # page sizes if the live endpoint rejects the larger request.
+    # Use the exact live category endpoint/query format supplied by Hepsiburada.
+    # Larger size is attempted first; smaller sizes are retained as a defensive fallback.
     last_error = None
     for size in (2000, 1000, 500, 100):
         try:
