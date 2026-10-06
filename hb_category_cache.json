@@ -52399,29 +52399,6 @@
       "merge": false
     },
     {
-      "categoryId": 60003561,
-      "name": "Tasarım Kılıflar",
-      "displayName": "Tasarım Kılıflar",
-      "parentCategoryId": 371967,
-      "paths": [
-        "Telefon",
-        "Cep Telefonu Aksesuarları",
-        "Tasarım Kılıflar"
-      ],
-      "leaf": true,
-      "status": "ACTIVE",
-      "type": "HB",
-      "sortId": "755757258",
-      "available": true,
-      "productTypes": [
-        {
-          "name": "Telefon Kılıflar",
-          "productTypeId": 529
-        }
-      ],
-      "merge": false
-    },
-    {
       "categoryId": 60004613,
       "name": "GPS Takip Cihazları",
       "displayName": "GPS Takip Cihazları",
