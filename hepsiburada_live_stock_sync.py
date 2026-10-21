@@ -496,3 +496,79 @@ def main():
 
 if __name__ == "__main__":
     main()
+import os
+import requests
+from requests.auth import HTTPBasicAuth
+import json
+
+# GitHub Actions üzerinden gelen çevresel değişkenler (Environment Variables)
+ty_supplier_id = os.getenv("TY_SUPPLIER_ID")
+ty_api_key = os.getenv("TY_API_KEY")
+ty_api_secret = os.getenv("TY_API_SECRET")
+
+hb_merchant_id = os.getenv("HB_MERCHANT_ID")
+hb_secret_key = os.getenv("HB_SECRET_KEY")
+hb_base_url = os.getenv("HB_LISTING_BASE_URL", "https://listing-external.hepsiburada.com")
+
+def get_trendyol_products():
+    """
+    Trendyol'daki tüm onaylı ürünleri (stoğu 0 olanlar dahil) çeker.
+    Ürün sayısı 1000'den fazlaysa döngü ile sayfalama (pagination) yapılmalıdır.
+    """
+    url = f"https://api.trendyol.com/sapigw/suppliers/{ty_supplier_id}/products?approved=true&size=1000"
+    
+    response = requests.get(url, auth=HTTPBasicAuth(ty_api_key, ty_api_secret))
+    response.raise_for_status()  # Hata varsa scripti durdurur
+    
+    return response.json().get('content', [])
+
+def sync_stock_to_hepsiburada(trendyol_products):
+    """
+    Çekilen ürünlerin stok durumlarını Hepsiburada'ya gönderir.
+    """
+    listings = []
+    
+    for product in trendyol_products:
+        barcode = product.get('barcode')
+        stock = product.get('quantity', 0)
+        
+        # Kritik nokta: Stoğu 0 olan ürünler burada Hepsiburada'ya "0" olarak ekleniyor.
+        hb_item = {
+            "merchantSku": barcode, # Hepsiburada'daki Stok Kodunuz Trendyol barkodu ile eşleşmeli
+            "availableStock": stock,
+            "dispatchTime": 1, 
+            "maximumQuantityToSell": stock if stock > 0 else 0
+        }
+        listings.append(hb_item)
+
+    if not listings:
+        print("Güncellenecek ürün bulunamadı.")
+        return
+
+    # Hepsiburada Inventory Upload endpoint'i
+    hb_url = f"{hb_base_url}/listings/merchantid/{hb_merchant_id}/inventory-uploads"
+    
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {hb_secret_key}" 
+        # Not: Hepsiburada API yetkilendirme tipine göre Bearer veya Basic olabilir, 
+        # size iletilen dokümantasyona göre bu formatı ayarlamalısınız.
+    }
+    
+    # Hepsiburada'ya toplu stok güncelleme isteğini gönder
+    response = requests.post(hb_url, headers=headers, data=json.dumps(listings))
+    
+    if response.status_code in [200, 201, 202]:
+        print(f"Başarılı! {len(listings)} ürünün güncel stok verisi Hepsiburada'ya iletildi.")
+    else:
+        print(f"Hata oluştu! Kod: {response.status_code} - Hepsiburada Yanıtı: {response.text}")
+
+if __name__ == "__main__":
+    print("Trendyol'dan veriler çekiliyor...")
+    products = get_trendyol_products()
+    print(f"Toplam {len(products)} ürün bulundu.")
+    
+    print("Hepsiburada'ya veriler gönderiliyor...")
+    sync_stock_to_hepsiburada(products)
+    print("Senkronizasyon işlemi bitti.")
+    
