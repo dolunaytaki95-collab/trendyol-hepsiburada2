@@ -3,34 +3,31 @@ import requests
 from requests.auth import HTTPBasicAuth
 import json
 
-ty_supplier_id = os.getenv("TY_SUPPLIER_ID")
-ty_api_key = os.getenv("TY_API_KEY")
-ty_api_secret = os.getenv("TY_API_SECRET")
+ty_supplier_id = os.getenv("TY_SUPPLIER_ID", "").strip()
+ty_api_key = os.getenv("TY_API_KEY", "").strip()
+ty_api_secret = os.getenv("TY_API_SECRET", "").strip()
 
-hb_merchant_id = os.getenv("HB_MERCHANT_ID")
-hb_secret_key = os.getenv("HB_SECRET_KEY")
-hb_base_url = os.getenv("HB_LISTING_BASE_URL", "https://listing-external.hepsiburada.com")
+hb_merchant_id = os.getenv("HB_MERCHANT_ID", "").strip()
+hb_secret_key = os.getenv("HB_SECRET_KEY", "").strip()
+hb_base_url = os.getenv("HB_LISTING_BASE_URL", "https://listing-external.hepsiburada.com").strip()
 
 def get_trendyol_stock_map():
-    """
-    Trendyol'daki tüm onaylı ürünleri çeker ve {Barkod: Stok} haritası oluşturur.
-    Cloudflare engelini aşmak için Chrome browser header'ları eklenmiştir.
-    """
+    if not ty_supplier_id or not ty_api_key or not ty_api_secret:
+        raise ValueError("❌ HATA: Trendyol API bilgileri (TY_SUPPLIER_ID, TY_API_KEY, TY_API_SECRET) GitHub Secrets alanında bulunamadı!")
+
     url = f"https://api.trendyol.com/sapigw/suppliers/{ty_supplier_id}/products?approved=true&size=1000"
     
+    # Trendyol'un Cloudflare WAF engelini aşmak için zorunlu SelfIntegration formatı
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-        "Accept": "application/json, text/plain, */*",
-        "Accept-Language": "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
-        "Cache-Control": "no-cache",
-        "Pragma": "no-cache"
+        "User-Agent": f"{ty_supplier_id} - SelfIntegration",
+        "Content-Type": "application/json"
     }
     
     response = requests.get(url, auth=HTTPBasicAuth(ty_api_key, ty_api_secret), headers=headers)
     
     if response.status_code != 200:
         print(f"❌ Trendyol API Hatası! Kod: {response.status_code}")
-        print(f"Gelen Yanıt (İlk 200 Karakter): {response.text[:200]}")
+        print(f"Gelen Yanıt: {response.text[:300]}")
         response.raise_for_status()
         
     products = response.json().get('content', [])
@@ -42,14 +39,11 @@ def get_trendyol_stock_map():
     return stock_map
 
 def get_hepsiburada_all_skus():
-    """
-    Hepsiburada'da kayıtlı olan tüm ürünlerin Stok Kodlarını çeker.
-    """
     url = f"{hb_base_url}/listings/merchantid/{hb_merchant_id}?offset=0&limit=1000"
     headers = {
         "Authorization": f"Bearer {hb_secret_key}",
         "Accept": "application/json",
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+        "User-Agent": f"{hb_merchant_id} - Integration"
     }
     
     try:
@@ -78,7 +72,7 @@ def sync_stocks():
     if hb_skus:
         print(f"   -> Hepsiburada'da {len(hb_skus)} adet ürün bulundu. Karşılaştırma yapılıyor...")
         for sku in hb_skus:
-            # Trendyol'da olmayan veya stoğu biten ürünü HB tarafında 0 yap
+            # Trendyol'da olmayan veya stoğu tükenen ürünleri HB tarafında 0'a çek
             target_stock = ty_stocks.get(sku, 0)
             update_payload.append({
                 "merchantSku": sku,
@@ -98,7 +92,7 @@ def sync_stocks():
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {hb_secret_key}",
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+        "User-Agent": f"{hb_merchant_id} - Integration"
     }
     
     response = requests.post(hb_url, headers=headers, data=json.dumps(update_payload))
