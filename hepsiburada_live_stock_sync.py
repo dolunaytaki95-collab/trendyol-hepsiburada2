@@ -571,4 +571,68 @@ if __name__ == "__main__":
     print("Hepsiburada'ya veriler gönderiliyor...")
     sync_stock_to_hepsiburada(products)
     print("Senkronizasyon işlemi bitti.")
+
+import os
+import requests
+from requests.auth import HTTPBasicAuth
+import json
+
+ty_supplier_id = os.getenv("TY_SUPPLIER_ID")
+ty_api_key = os.getenv("TY_API_KEY")
+ty_api_secret = os.getenv("TY_API_SECRET")
+
+hb_merchant_id = os.getenv("HB_MERCHANT_ID")
+hb_secret_key = os.getenv("HB_SECRET_KEY")
+hb_base_url = os.getenv("HB_LISTING_BASE_URL", "https://listing-external.hepsiburada.com")
+
+def get_trendyol_products():
+    url = f"https://api.trendyol.com/sapigw/suppliers/{ty_supplier_id}/products?approved=true&size=1000"
+    response = requests.get(url, auth=HTTPBasicAuth(ty_api_key, ty_api_secret))
+    response.raise_for_status()
+    return response.json().get('content', [])
+
+def sync_stock_to_hepsiburada(trendyol_products):
+    listings = []
+    zero_stock_count = 0
+    
+    for product in trendyol_products:
+        barcode = product.get('barcode')
+        stock = product.get('quantity', 0)
+        
+        if stock == 0:
+            zero_stock_count += 1
+            print(f"[UYARI] Tükenen Ürün Bulundu -> Barkod: {barcode} | Stok: 0")
+        
+        # Hepsiburada Sadeleştirilmiş Stok Güncelleme Formatı
+        hb_item = {
+            "merchantSku": barcode,
+            "availableStock": stock
+        }
+        listings.append(hb_item)
+
+    print(f"\n--- ÖZET ---")
+    print(f"Toplam Çekilen Ürün: {len(trendyol_products)}")
+    print(f"Stoğu 0 Olan Ürün Sayısı: {zero_stock_count}")
+
+    if not listings:
+        print("Güncellenecek ürün bulunamadı.")
+        return
+
+    hb_url = f"{hb_base_url}/listings/merchantid/{hb_merchant_id}/inventory-uploads"
+    
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {hb_secret_key}"
+    }
+    
+    response = requests.post(hb_url, headers=headers, data=json.dumps(listings))
+    
+    if response.status_code in [200, 201, 202]:
+        print(f"Başarılı! Hepsiburada API isteği kabul etti. Yanıt: {response.text}")
+    else:
+        print(f"Hata! KOD: {response.status_code} - Detay: {response.text}")
+
+if __name__ == "__main__":
+    products = get_trendyol_products()
+    sync_stock_to_hepsiburada(products)
     
