@@ -1,142 +1,119 @@
 import os
 import json
-import urllib.request
-import urllib.parse
-import base64
-import ssl
+import requests
+from requests.auth import HTTPBasicAuth
 
-# Environment değişkenleri (Boşluk temizlemeli)
-ty_supplier_id = os.getenv("TY_SUPPLIER_ID", "").strip()
-ty_api_key = os.getenv("TY_API_KEY", "").strip()
-ty_api_secret = os.getenv("TY_API_SECRET", "").strip()
+def clean_val(val):
+    """Gizli değişkenlerdeki tırnak ve boşluk karakterlerini temizler."""
+    if not val:
+        return ""
+    return str(val).strip().strip("'").strip('"')
 
-hb_merchant_id = os.getenv("HB_MERCHANT_ID", "").strip()
-hb_secret_key = os.getenv("HB_SECRET_KEY", "").strip()
-hb_base_url = os.getenv("HB_LISTING_BASE_URL", "https://listing-external.hepsiburada.com").strip()
+ty_supplier_id = clean_val(os.getenv("TY_SUPPLIER_ID"))
+ty_api_key = clean_val(os.getenv("TY_API_KEY"))
+ty_api_secret = clean_val(os.getenv("TY_API_SECRET"))
 
-def get_trendyol_stock_map():
-    """
-    Python'ın dahili 'urllib' kütüphanesi ile Trendyol'dan verileri çeker.
-    Requests kütüphanesinin Cloudflare WAF 403 engeline takılmasını önler.
-    """
+hb_merchant_id = clean_val(os.getenv("HB_MERCHANT_ID"))
+hb_secret_key = clean_val(os.getenv("HB_SECRET_KEY"))
+hb_base_url = clean_val(os.getenv("HB_LISTING_BASE_URL")) or "https://listing-external.hepsiburada.com"
+
+def get_trendyol_products():
     if not ty_supplier_id or not ty_api_key or not ty_api_secret:
-        raise ValueError("❌ HATA: Trendyol API bilgileri (TY_SUPPLIER_ID, TY_API_KEY, TY_API_SECRET) Secrets alanında bulunamadı!")
+        raise ValueError("❌ HATA: Trendyol API anahtarları GitHub Secrets alanında eksik veya hatalı!")
 
     stock_map = {}
     page = 0
     size = 100
+    url = f"https://api.trendyol.com/sapigw/suppliers/{ty_supplier_id}/products"
 
-    # Basic Auth kimlik doğrulama dizesi
-    auth_bytes = f"{ty_api_key}:{ty_api_secret}".encode('utf-8')
-    base64_auth = base64.b64encode(auth_bytes).decode('utf-8')
-
-    ctx = ssl.create_default_context()
+    # Cloudflare filtrelerini aşmak için entegrasyon başlığı
+    headers = {
+        "User-Agent": f"{ty_supplier_id} - SelfIntegration",
+        "Accept": "application/json"
+    }
 
     while True:
-        url = f"https://api.trendyol.com/sapigw/suppliers/{ty_supplier_id}/products?approved=true&page={page}&size={size}"
-        req = urllib.request.Request(url)
+        params = {"page": page, "size": size}
+        res = requests.get(url, params=params, auth=HTTPBasicAuth(ty_api_key, ty_api_secret), headers=headers)
         
-        # Cloudflare filtresini geçen başlıklar
-        req.add_header("Authorization", f"Basic {base64_auth}")
-        req.add_header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36")
-        req.add_header("Accept", "application/json")
+        # Cloudflare 403 engeline takılırsa doğrudan sade isteğe düşer
+        if res.status_code == 403:
+            res = requests.get(url, params=params, auth=HTTPBasicAuth(ty_api_key, ty_api_secret))
 
-        try:
-            with urllib.request.urlopen(req, context=ctx) as response:
-                if response.status != 200:
-                    print(f"❌ Trendyol API Hatası! Sayfa: {page}, Kod: {response.status}")
-                    break
+        if res.status_code != 200:
+            print(f"❌ Trendyol API Hatası! Kod: {res.status_code} - Yanıt: {res.text[:200]}")
+            res.raise_for_status()
 
-                res_body = response.read().decode('utf-8')
-                data = json.loads(res_body)
-                products = data.get('content', [])
+        data = res.json()
+        products = data.get("content", [])
+        if not products:
+            break
 
-                if not products:
-                    break
+        for p in products:
+            barcode = p.get("barcode")
+            if barcode:
+                stock_map[barcode] = p.get("quantity", 0)
 
-                for p in products:
-                    barcode = p.get('barcode')
-                    if barcode:
-                        stock_map[barcode] = p.get('quantity', 0)
+        total_pages = data.get("totalPages", 0)
+        page += 1
+        if page >= total_pages or len(products) < size:
+            break
 
-                total_pages = data.get('totalPages', 0)
-                page += 1
-
-                if page >= total_pages or len(products) < size:
-                    break
-
-        except urllib.error.HTTPError as e:
-            print(f"❌ HTTP Hatası ({e.code}): {e.reason}")
-            error_body = e.read().decode('utf-8', errors='ignore')
-            print(f"Gelen Yanıt: {error_body[:200]}")
-            raise e
-
-    print(f"   -> Trendyol'dan {len(stock_map)} adet benzersiz ürünün stok verisi alındı.")
+    print(f"✅ Trendyol'dan {len(stock_map)} adet ürünün stok bilgisi alındı.")
     return stock_map
 
-def get_hepsiburada_all_skus():
-    """
-    Hepsiburada'da kayıtlı olan tüm ürünlerin Stok Kodlarını (merchantSku) çeker.
-    """
+def get_hepsiburada_skus():
     skus = []
     offset = 0
     limit = 200
-
-    ctx = ssl.create_default_context()
+    headers = {
+        "Authorization": f"Bearer {hb_secret_key}",
+        "Accept": "application/json"
+    }
 
     while True:
         url = f"{hb_base_url}/listings/merchantid/{hb_merchant_id}?offset={offset}&limit={limit}"
-        req = urllib.request.Request(url)
-        req.add_header("Authorization", f"Bearer {hb_secret_key}")
-        req.add_header("Accept", "application/json")
-        req.add_header("User-Agent", "Mozilla/5.0")
-
         try:
-            with urllib.request.urlopen(req, context=ctx) as response:
-                if response.status == 200:
-                    res_body = response.read().decode('utf-8')
-                    data = json.loads(res_body)
-                    listings = data.get('listings', []) or data.get('content', []) or []
-                    if not listings:
-                        break
-
-                    for item in listings:
-                        sku = item.get('merchantSku')
-                        if sku:
-                            skus.append(sku)
-
-                    if len(listings) < limit:
-                        break
-                    offset += limit
-                else:
-                    print(f"[BİLGİ] HB ilan listesi çekilemedi (Kod: {response.status}).")
+            res = requests.get(url, headers=headers)
+            if res.status_code == 200:
+                data = res.json()
+                listings = data.get("listings", []) or data.get("content", []) or []
+                if not listings:
                     break
-        except Exception as e:
-            print(f"[BİLGİ] HB ilan listesi çekilirken hata: {e}")
+                for item in listings:
+                    sku = item.get("merchantSku")
+                    if sku:
+                        skus.append(sku)
+                if len(listings) < limit:
+                    break
+                offset += limit
+            else:
+                break
+        except Exception:
             break
 
     return skus
 
-def sync_stocks():
-    print("1. Trendyol stok verileri çekiliyor (urllib entegrasyonu)...")
-    ty_stocks = get_trendyol_stock_map()
+def sync():
+    print("1. Trendyol stok verileri çekiliyor...")
+    ty_stocks = get_trendyol_products()
 
-    print("2. Hepsiburada mevcut ilan listesi çekiliyor...")
-    hb_skus = get_hepsiburada_all_skus()
+    print("2. Hepsiburada envanter listesi çekiliyor...")
+    hb_skus = get_hepsiburada_skus()
 
     update_payload = []
 
     if hb_skus:
-        print(f"   -> Hepsiburada'da {len(hb_skus)} adet ürün bulundu. Karşılaştırma yapılıyor...")
+        print(f"   -> Hepsiburada'da {len(hb_skus)} ürün bulundu. Karşılaştırma yapılıyor...")
         for sku in hb_skus:
-            # Trendyol'da bulunmayan veya stoğu tükenen ürün Hepsiburada'da 0 yapılır
+            # Trendyol'da stoğu tükenen veya silinen ürün Hepsiburada'da 0 yapılır
             target_stock = ty_stocks.get(sku, 0)
             update_payload.append({
                 "merchantSku": sku,
                 "availableStock": target_stock
             })
     else:
-        print("   -> HB ilan listesi çekilemediği için Trendyol listesindeki veriler gönderiliyor...")
+        print("   -> HB ilan listesi çekilemedi, Trendyol stokları doğrudan gönderiliyor...")
         for barcode, stock in ty_stocks.items():
             update_payload.append({
                 "merchantSku": barcode,
@@ -144,27 +121,20 @@ def sync_stocks():
             })
 
     print(f"3. Toplam {len(update_payload)} ürün için Hepsiburada stok güncellemesi gönderiliyor...")
-
     hb_url = f"{hb_base_url}/listings/merchantid/{hb_merchant_id}/inventory-uploads"
-    json_data = json.dumps(update_payload).encode('utf-8')
+    hb_headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {hb_secret_key}"
+    }
 
-    req = urllib.request.Request(hb_url, data=json_data, method='POST')
-    req.add_header("Content-Type", "application/json")
-    req.add_header("Authorization", f"Bearer {hb_secret_key}")
-    req.add_header("User-Agent", "Mozilla/5.0")
-
-    ctx = ssl.create_default_context()
-
-    try:
-        with urllib.request.urlopen(req, context=ctx) as response:
-            if response.status in [200, 201, 202]:
-                print("✅ BAŞARILI: Stok güncelleme paketi Hepsiburada'ya iletildi.")
-            else:
-                res_body = response.read().decode('utf-8')
-                print(f"❌ HATA: Kod {response.status} - Yanıt: {res_body}")
-    except urllib.error.HTTPError as e:
-        error_body = e.read().decode('utf-8', errors='ignore')
-        print(f"❌ Hepsiburada Yükleme Hatası ({e.code}): {error_body}")
+    batch_size = 200
+    for i in range(0, len(update_payload), batch_size):
+        batch = update_payload[i:i + batch_size]
+        res = requests.post(hb_url, headers=hb_headers, data=json.dumps(batch))
+        if res.status_code in [200, 201, 202]:
+            print(f"✅ BAŞARILI: {len(batch)} adet ürün stoğu Hepsiburada'ya aktarıldı.")
+        else:
+            print(f"❌ Hepsiburada Güncelleme Hatası ({res.status_code}): {res.text}")
 
 if __name__ == "__main__":
-    sync_stocks()
+    sync()
