@@ -1,76 +1,75 @@
 import os
 import json
+import subprocess
 import requests
-from requests.auth import HTTPBasicAuth
 
-def clean_val(val):
-    """Gizli değişkenlerdeki tırnak ve boşluk karakterlerini temizler."""
-    if not val:
-        return ""
-    return str(val).strip().strip("'").strip('"')
+def get_env(key):
+    return str(os.getenv(key, "")).strip()
 
-ty_supplier_id = clean_val(os.getenv("TY_SUPPLIER_ID"))
-ty_api_key = clean_val(os.getenv("TY_API_KEY"))
-ty_api_secret = clean_val(os.getenv("TY_API_SECRET"))
+ty_supplier_id = get_env("TY_SUPPLIER_ID")
+ty_api_key = get_env("TY_API_KEY")
+ty_api_secret = get_env("TY_API_SECRET")
 
-hb_merchant_id = clean_val(os.getenv("HB_MERCHANT_ID"))
-hb_secret_key = clean_val(os.getenv("HB_SECRET_KEY"))
-hb_base_url = clean_val(os.getenv("HB_LISTING_BASE_URL")) or "https://listing-external.hepsiburada.com"
+hb_merchant_id = get_env("HB_MERCHANT_ID")
+hb_secret_key = get_env("HB_SECRET_KEY")
+hb_base_url = get_env("HB_LISTING_BASE_URL") or "https://listing-external.hepsiburada.com"
 
-def get_trendyol_products():
-    if not ty_supplier_id or not ty_api_key or not ty_api_secret:
-        raise ValueError("❌ HATA: Trendyol API anahtarları GitHub Secrets alanında eksik veya hatalı!")
+def get_trendyol_via_curl():
+    print("1. Trendyol stok verileri çekiliyor (CURL Bypass Yöntemi)...")
+    if not ty_supplier_id or not ty_api_key:
+        raise ValueError("❌ Hata: Trendyol API bilgileri eksik!")
 
+    import base64
+    auth_string = f"{ty_api_key}:{ty_api_secret}"
+    base64_auth = base64.b64encode(auth_string.encode('utf-8')).decode('utf-8')
+    
     stock_map = {}
     page = 0
-    size = 100
-    url = f"https://api.trendyol.com/sapigw/suppliers/{ty_supplier_id}/products"
-
-    # Cloudflare filtrelerini aşmak için entegrasyon başlığı
-    headers = {
-        "User-Agent": f"{ty_supplier_id} - SelfIntegration",
-        "Accept": "application/json"
-    }
-
+    size = 200
+    
     while True:
-        params = {"page": page, "size": size}
-        res = requests.get(url, params=params, auth=HTTPBasicAuth(ty_api_key, ty_api_secret), headers=headers)
+        url = f"https://api.trendyol.com/sapigw/suppliers/{ty_supplier_id}/products?approved=true&page={page}&size={size}"
         
-        # Cloudflare 403 engeline takılırsa doğrudan sade isteğe düşer
-        if res.status_code == 403:
-            res = requests.get(url, params=params, auth=HTTPBasicAuth(ty_api_key, ty_api_secret))
-
-        if res.status_code != 200:
-            print(f"❌ Trendyol API Hatası! Kod: {res.status_code} - Yanıt: {res.text[:200]}")
-            res.raise_for_status()
-
-        data = res.json()
+        # Python kütüphanelerini ezerek doğrudan işletim sisteminin ağ komutunu (curl) kullanıyoruz
+        cmd = [
+            "curl", "-s", "-X", "GET", url,
+            "-H", f"Authorization: Basic {base64_auth}",
+            "-H", f"User-Agent: {ty_supplier_id} - SelfIntegration",
+            "-H", "Accept: application/json"
+        ]
+        
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        
+        try:
+            data = json.loads(result.stdout)
+        except json.JSONDecodeError:
+            print(f"❌ Beklenmeyen Yanıt (WAF Engeli veya HTML): {result.stdout[:200]}")
+            break
+            
         products = data.get("content", [])
         if not products:
             break
-
+            
         for p in products:
             barcode = p.get("barcode")
             if barcode:
                 stock_map[barcode] = p.get("quantity", 0)
-
-        total_pages = data.get("totalPages", 0)
-        page += 1
-        if page >= total_pages or len(products) < size:
+                
+        if len(products) < size:
             break
-
-    print(f"✅ Trendyol'dan {len(stock_map)} adet ürünün stok bilgisi alındı.")
+        page += 1
+        
+    print(f"   -> Trendyol'dan {len(stock_map)} adet ürün başarıyla çekildi.")
     return stock_map
 
-def get_hepsiburada_skus():
+def get_hb_skus():
     skus = []
     offset = 0
-    limit = 200
+    limit = 500
     headers = {
         "Authorization": f"Bearer {hb_secret_key}",
         "Accept": "application/json"
     }
-
     while True:
         url = f"{hb_base_url}/listings/merchantid/{hb_merchant_id}?offset={offset}&limit={limit}"
         try:
@@ -91,36 +90,36 @@ def get_hepsiburada_skus():
                 break
         except Exception:
             break
-
     return skus
 
 def sync():
-    print("1. Trendyol stok verileri çekiliyor...")
-    ty_stocks = get_trendyol_products()
+    ty_stocks = get_trendyol_via_curl()
+    if not ty_stocks:
+        print("❌ Hata: Trendyol verisi alınamadığı için senkronizasyon iptal edildi.")
+        return
 
-    print("2. Hepsiburada envanter listesi çekiliyor...")
-    hb_skus = get_hepsiburada_skus()
-
+    print("2. Hepsiburada mevcut ilan listesi çekiliyor...")
+    hb_skus = get_hb_skus()
     update_payload = []
 
     if hb_skus:
         print(f"   -> Hepsiburada'da {len(hb_skus)} ürün bulundu. Karşılaştırma yapılıyor...")
         for sku in hb_skus:
-            # Trendyol'da stoğu tükenen veya silinen ürün Hepsiburada'da 0 yapılır
+            # Trendyol'da stoğu tükenen ürün (haritada yoksa) HB'da 0 yapılır
             target_stock = ty_stocks.get(sku, 0)
             update_payload.append({
                 "merchantSku": sku,
                 "availableStock": target_stock
             })
     else:
-        print("   -> HB ilan listesi çekilemedi, Trendyol stokları doğrudan gönderiliyor...")
+        print("   -> HB listesi çekilemedi, Trendyol'daki ürünler doğrudan gönderiliyor...")
         for barcode, stock in ty_stocks.items():
             update_payload.append({
                 "merchantSku": barcode,
                 "availableStock": stock
             })
 
-    print(f"3. Toplam {len(update_payload)} ürün için Hepsiburada stok güncellemesi gönderiliyor...")
+    print(f"3. Toplam {len(update_payload)} ürün Hepsiburada'ya aktarılıyor...")
     hb_url = f"{hb_base_url}/listings/merchantid/{hb_merchant_id}/inventory-uploads"
     hb_headers = {
         "Content-Type": "application/json",
@@ -132,9 +131,9 @@ def sync():
         batch = update_payload[i:i + batch_size]
         res = requests.post(hb_url, headers=hb_headers, data=json.dumps(batch))
         if res.status_code in [200, 201, 202]:
-            print(f"✅ BAŞARILI: {len(batch)} adet ürün stoğu Hepsiburada'ya aktarıldı.")
+            print(f"✅ BAŞARILI: {len(batch)} adet ürün stoğu Hepsiburada üzerinde güncellendi.")
         else:
-            print(f"❌ Hepsiburada Güncelleme Hatası ({res.status_code}): {res.text}")
+            print(f"❌ HB Güncelleme Hatası ({res.status_code}): {res.text}")
 
 if __name__ == "__main__":
     sync()
