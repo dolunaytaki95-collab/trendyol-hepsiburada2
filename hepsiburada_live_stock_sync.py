@@ -3,7 +3,6 @@ import requests
 from requests.auth import HTTPBasicAuth
 import json
 
-# Environment değişkenlerini al ve gizli boşluk/satır başı karakterlerini temizle
 ty_supplier_id = os.getenv("TY_SUPPLIER_ID", "").strip()
 ty_api_key = os.getenv("TY_API_KEY", "").strip()
 ty_api_secret = os.getenv("TY_API_SECRET", "").strip()
@@ -13,30 +12,29 @@ hb_secret_key = os.getenv("HB_SECRET_KEY", "").strip()
 hb_base_url = os.getenv("HB_LISTING_BASE_URL", "https://listing-external.hepsiburada.com").strip()
 
 def get_trendyol_stock_map():
-    """
-    Trendyol'daki tüm onaylı ürünleri sayfalama (pagination) yaparak çeker.
-    size=1000 WAF/403 engeline takıldığı için size=200 olarak ayarlanmıştır.
-    """
     if not ty_supplier_id or not ty_api_key or not ty_api_secret:
-        raise ValueError("❌ HATA: Trendyol API bilgileri (TY_SUPPLIER_ID, TY_API_KEY, TY_API_SECRET) bulunamadı!")
+        raise ValueError("❌ HATA: Trendyol API bilgileri Secrets alanında bulunamadı!")
 
     stock_map = {}
     page = 0
-    size = 200
-    total_fetched = 0
+    size = 50  # Cloudflare WAF engeline takılmamak için küçük paket boyutu
 
-    headers = {
-        "User-Agent": f"{ty_supplier_id} - SelfIntegration",
-        "Content-Type": "application/json"
-    }
+    session = requests.Session()
+    session.auth = HTTPBasicAuth(ty_api_key, ty_api_secret)
 
     while True:
-        url = f"https://api.trendyol.com/sapigw/suppliers/{ty_supplier_id}/products?approved=true&page={page}&size={size}"
-        response = requests.get(url, auth=HTTPBasicAuth(ty_api_key, ty_api_secret), headers=headers)
+        url = f"https://api.trendyol.com/sapigw/suppliers/{ty_supplier_id}/products"
+        params = {
+            "approved": "true",
+            "page": page,
+            "size": size
+        }
+
+        response = session.get(url, params=params)
 
         if response.status_code != 200:
             print(f"❌ Trendyol API Hatası! Sayfa: {page}, Kod: {response.status_code}")
-            print(f"Gelen Yanıt (İlk 200 karakter): {response.text[:200]}")
+            print(f"Yanıt: {response.text[:200]}")
             response.raise_for_status()
 
         data = response.json()
@@ -50,28 +48,23 @@ def get_trendyol_stock_map():
             if barcode:
                 stock_map[barcode] = p.get('quantity', 0)
 
-        total_fetched += len(products)
         total_pages = data.get('totalPages', 0)
-
         page += 1
+
         if page >= total_pages or len(products) < size:
             break
 
-    print(f"   -> Trendyol'dan toplam {total_fetched} ürün çekildi ({len(stock_map)} benzersiz barkod).")
+    print(f"   -> Trendyol'dan {len(stock_map)} adet ürünün güncel stok verisi çekildi.")
     return stock_map
 
 def get_hepsiburada_all_skus():
-    """
-    Hepsiburada'da kayıtlı olan tüm ürünlerin Stok Kodlarını (merchantSku) çeker.
-    """
     skus = []
     offset = 0
-    limit = 500
+    limit = 200
 
     headers = {
         "Authorization": f"Bearer {hb_secret_key}",
-        "Accept": "application/json",
-        "User-Agent": f"{hb_merchant_id} - Integration"
+        "Accept": "application/json"
     }
 
     while True:
@@ -113,7 +106,7 @@ def sync_stocks():
     if hb_skus:
         print(f"   -> Hepsiburada'da {len(hb_skus)} adet ürün bulundu. Karşılaştırma yapılıyor...")
         for sku in hb_skus:
-            # Trendyol'da olmayan veya stoğu 0 olan ürün Hepsiburada'da 0 yapılır
+            # Trendyol'da stoğu tükenen veya silinen ürünler HB tarafında 0 yapılır
             target_stock = ty_stocks.get(sku, 0)
             update_payload.append({
                 "merchantSku": sku,
@@ -132,12 +125,10 @@ def sync_stocks():
     hb_url = f"{hb_base_url}/listings/merchantid/{hb_merchant_id}/inventory-uploads"
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {hb_secret_key}",
-        "User-Agent": f"{hb_merchant_id} - Integration"
+        "Authorization": f"Bearer {hb_secret_key}"
     }
 
-    # Hepsiburada API'sine paketler halinde (max 500) gönderim
-    batch_size = 500
+    batch_size = 200
     for i in range(0, len(update_payload), batch_size):
         batch = update_payload[i:i + batch_size]
         response = requests.post(hb_url, headers=headers, data=json.dumps(batch))
