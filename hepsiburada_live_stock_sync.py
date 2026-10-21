@@ -13,14 +13,22 @@ hb_base_url = os.getenv("HB_LISTING_BASE_URL", "https://listing-external.hepsibu
 
 def get_trendyol_stock_map():
     """
-    Trendyol'daki tüm Onaylı ürünleri çeker ve {Barkod: Stok} haritası oluşturur.
+    Trendyol'daki tüm onaylı ürünleri çeker ve {Barkod: Stok} haritası oluşturur.
+    User-Agent başlığı Trendyol'un 401/403 engeline takılmamak için eklenmiştir.
     """
     url = f"https://api.trendyol.com/sapigw/suppliers/{ty_supplier_id}/products?approved=true&size=1000"
-    response = requests.get(url, auth=HTTPBasicAuth(ty_api_key, ty_api_secret))
-    response.raise_for_status()
     
+    headers = {
+        "User-Agent": f"{ty_supplier_id} - SelfIntegration"
+    }
+    
+    response = requests.get(url, auth=HTTPBasicAuth(ty_api_key, ty_api_secret), headers=headers)
+    
+    if response.status_code != 200:
+        print(f"❌ Trendyol API Hatası! Kod: {response.status_code} - Yanıt: {response.text}")
+        response.raise_for_status()
+        
     products = response.json().get('content', [])
-    # Trendyol barkodunu key, stoğunu value yapıyoruz
     stock_map = {}
     for p in products:
         barcode = p.get('barcode')
@@ -30,7 +38,7 @@ def get_trendyol_stock_map():
 
 def get_hepsiburada_all_skus():
     """
-    Hepsiburada'da kayıtlı olan TÜM ürünlerin Stok Kodlarını (merchantSku) çeker.
+    Hepsiburada'da kayıtlı olan tüm ürünlerin Stok Kodlarını çeker.
     """
     url = f"{hb_base_url}/listings/merchantid/{hb_merchant_id}?offset=0&limit=1000"
     headers = {
@@ -45,16 +53,16 @@ def get_hepsiburada_all_skus():
             listings = data.get('listings', []) or data.get('content', []) or []
             return [item.get('merchantSku') for item in listings if item.get('merchantSku')]
         else:
-            print(f"[BİLGİ] HB İlan listesi çekilemedi (Kod: {response.status_code}). Varsayılan moda geçiliyor.")
+            print(f"[BİLGİ] HB ilan listesi çekilemedi (Kod: {response.status_code}). Varsayılan moda geçiliyor.")
             return []
     except Exception as e:
-        print(f"[BİLGİ] HB İlan listesi çekilirken hata: {e}")
+        print(f"[BİLGİ] HB ilan listesi çekilirken hata: {e}")
         return []
 
 def sync_stocks():
     print("1. Trendyol stok verileri çekiliyor...")
     ty_stocks = get_trendyol_stock_map()
-    print(f"   -> Trendyol'dan {len(ty_stocks)} adet ürün alındı.")
+    print(f"   -> Trendyol'dan {len(ty_stocks)} adet ürün başarıyla alındı.")
 
     print("2. Hepsiburada mevcut ilan listesi çekiliyor...")
     hb_skus = get_hepsiburada_all_skus()
@@ -63,9 +71,8 @@ def sync_stocks():
 
     if hb_skus:
         print(f"   -> Hepsiburada'da {len(hb_skus)} adet ürün bulundu. Karşılaştırma yapılıyor...")
-        # Hepsiburada'daki HER BİR ürünü kontrol et
         for sku in hb_skus:
-            # Ürün Trendyol'da varsa onun stoğunu al, YOKSA STOĞU 0 YAP!
+            # Trendyol'da olmayan veya stoğu biten ürünü HB tarafında 0 yap
             target_stock = ty_stocks.get(sku, 0)
             update_payload.append({
                 "merchantSku": sku,
