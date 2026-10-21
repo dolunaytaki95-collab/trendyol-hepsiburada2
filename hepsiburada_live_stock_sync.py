@@ -14,18 +14,23 @@ hb_base_url = os.getenv("HB_LISTING_BASE_URL", "https://listing-external.hepsibu
 def get_trendyol_stock_map():
     """
     Trendyol'daki tüm onaylı ürünleri çeker ve {Barkod: Stok} haritası oluşturur.
-    User-Agent başlığı Trendyol'un 401/403 engeline takılmamak için eklenmiştir.
+    Cloudflare engelini aşmak için Chrome browser header'ları eklenmiştir.
     """
     url = f"https://api.trendyol.com/sapigw/suppliers/{ty_supplier_id}/products?approved=true&size=1000"
     
     headers = {
-        "User-Agent": f"{ty_supplier_id} - SelfIntegration"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Language": "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
+        "Cache-Control": "no-cache",
+        "Pragma": "no-cache"
     }
     
     response = requests.get(url, auth=HTTPBasicAuth(ty_api_key, ty_api_secret), headers=headers)
     
     if response.status_code != 200:
-        print(f"❌ Trendyol API Hatası! Kod: {response.status_code} - Yanıt: {response.text}")
+        print(f"❌ Trendyol API Hatası! Kod: {response.status_code}")
+        print(f"Gelen Yanıt (İlk 200 Karakter): {response.text[:200]}")
         response.raise_for_status()
         
     products = response.json().get('content', [])
@@ -43,7 +48,8 @@ def get_hepsiburada_all_skus():
     url = f"{hb_base_url}/listings/merchantid/{hb_merchant_id}?offset=0&limit=1000"
     headers = {
         "Authorization": f"Bearer {hb_secret_key}",
-        "Accept": "application/json"
+        "Accept": "application/json",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
     }
     
     try:
@@ -91,7 +97,8 @@ def sync_stocks():
     hb_url = f"{hb_base_url}/listings/merchantid/{hb_merchant_id}/inventory-uploads"
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {hb_secret_key}"
+        "Authorization": f"Bearer {hb_secret_key}",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
     }
     
     response = requests.post(hb_url, headers=headers, data=json.dumps(update_payload))
