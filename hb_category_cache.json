@@ -9078,6 +9078,30 @@
       "merge": false
     },
     {
+      "categoryId": 60001377,
+      "name": "Akıllı Kilit & Elektronik Geçiş Sistemleri",
+      "displayName": "Akıllı Kilit & Elektronik Geçiş Sistemleri",
+      "parentCategoryId": 60003995,
+      "paths": [
+        "Yapı Market / Bahçe / Oto",
+        "Yapı Market / Hırdavat",
+        "Güvenlik",
+        "Akıllı Kilit & Elektronik Geçiş Sistemleri"
+      ],
+      "leaf": true,
+      "status": "ACTIVE",
+      "type": "HB",
+      "sortId": null,
+      "available": true,
+      "productTypes": [
+        {
+          "name": "Güvenlik Cihazları",
+          "productTypeId": 3224
+        }
+      ],
+      "merge": false
+    },
+    {
       "categoryId": 60007682,
       "name": "Akıllı Kumandalar",
       "displayName": "Akıllı Kumandalar",
@@ -86500,30 +86524,6 @@
         {
           "name": "Yangın Söndürücüler",
           "productTypeId": 1128
-        }
-      ],
-      "merge": false
-    },
-    {
-      "categoryId": 60001377,
-      "name": "Güvenlik Cihazları",
-      "displayName": "Güvenlik Cihazları",
-      "parentCategoryId": 60003995,
-      "paths": [
-        "Yapı Market / Bahçe / Oto",
-        "Yapı Market / Hırdavat",
-        "Güvenlik",
-        "Güvenlik Cihazları"
-      ],
-      "leaf": true,
-      "status": "ACTIVE",
-      "type": "HB",
-      "sortId": "2",
-      "available": true,
-      "productTypes": [
-        {
-          "name": "Güvenlik Cihazları",
-          "productTypeId": 3224
         }
       ],
       "merge": false
